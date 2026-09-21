@@ -339,6 +339,59 @@ const COMA_COMPLICATIONS = [
 
 const getRoll = (sides) => Math.floor(Math.random() * sides) + 1;
 
+// --- EXHAUSTION CONTROLS ---
+window.adjustExhaustion = async (amount, reset = false) => {
+    const char = characters.find(c => c.id === activeCharId);
+    if (!char) return;
+
+    let currentLvl = parseInt(char.exhaustion) || 0;
+    let newLvl = reset ? 0 : Math.max(0, Math.min(6, currentLvl + amount));
+
+    const hiddenInput = document.querySelector('[data-key="exhaustion"]');
+    if (hiddenInput) hiddenInput.value = newLvl;
+
+    const updates = { exhaustion: newLvl };
+
+    // Automatic death on Level 6 Exhaustion
+    if (newLvl === 6) {
+        updates.status = 'dead';
+        updates.hpCurrent = 0;
+        window.showToast("Exhaustion Level 6 reached: The character has perished.");
+    }
+
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'characters', activeCharId), updates);
+    window.renderExhaustionUI(newLvl);
+};
+
+window.renderExhaustionUI = (lvl) => {
+    const display = document.getElementById('exhaustion-level-display');
+    if (display) display.innerText = lvl;
+
+    for (let i = 1; i <= 6; i++) {
+        const row = document.getElementById(`ex-lvl-${i}`);
+        if (!row) continue;
+
+        const statusTag = row.querySelector('.ex-status');
+
+        if (lvl >= i) {
+            row.className = i === 6 
+                ? "p-1.5 rounded border border-red-900 bg-blood text-parchment flex items-center justify-between shadow-md"
+                : "p-1.5 rounded border border-blood bg-blood/10 text-blood flex items-center justify-between font-black";
+            if (statusTag) {
+                statusTag.innerText = "ACTIVE";
+                statusTag.className = "ex-status font-black text-[9px] text-blood";
+                if (i === 6) statusTag.className = "ex-status font-black text-[9px] text-parchment";
+            }
+        } else {
+            row.className = "p-1.5 rounded border border-gray-400/30 text-gray-500 flex items-center justify-between";
+            if (statusTag) {
+                statusTag.innerText = "INACTIVE";
+                statusTag.className = "ex-status font-black text-[9px] text-gray-400";
+            }
+        }
+    }
+};
+
 // --- STRESS THRESHOLD CHECK ---
 window.checkStressThreshold = (val) => {
     const curStress = parseInt(val) || 0;
@@ -825,6 +878,9 @@ function syncSheetData() {
 
     // Check stress threshold banner
     window.checkStressThreshold(char.currentStress || 0);
+
+    // Render exhaustion UI
+    window.renderExhaustionUI(parseInt(char.exhaustion) || 0);
 
     const classInput = document.getElementById('class-input');
     const mClassBtn = document.getElementById('btn-multiclass');
