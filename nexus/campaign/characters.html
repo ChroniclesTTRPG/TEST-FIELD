@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Lora:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
 
-    <!-- Custom CSS (Fixed Path) -->
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="css/styles.css">
 
     <!-- Tailwind Configuration -->
@@ -281,14 +281,69 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- SCARS & TRAUMA FRAMEWORK -->
                                 <div class="sheet-card" id="sheet-card-stress">
-                                    <h3 id="label-term-stress-header">Stress & Trauma</h3>
+                                    <div class="flex justify-between items-center border-b border-[rgba(139,90,43,0.3)] pb-2 mb-3">
+                                        <h3 id="label-term-stress-header" class="!border-b-0 !mb-0">Stress, Scars & Trauma</h3>
+                                        <button onclick="window.generateScarsAndTrauma()" class="text-[8px] bg-transparent border border-blood text-blood px-2 py-0.5 rounded font-bold hover:bg-blood hover:text-parchment transition-colors font-heading read-only-hide" title="Roll Random Scars & Trauma Framework">🎲 Roll Framework</button>
+                                    </div>
+                                    
                                     <div class="flex justify-around items-center mb-4 mt-2">
-                                        <div class="text-center"><input type="number" data-key="currentStress" class="text-3xl font-bold text-center w-20 text-blood font-heading border-b border-dashed border-gray-400" value="0"><label class="tiny-label mt-1">Current</label></div>
+                                        <div class="text-center"><input type="number" data-key="currentStress" class="text-3xl font-bold text-center w-20 text-blood font-heading border-b border-dashed border-gray-400" value="0"><label class="tiny-label mt-1">Current Stress</label></div>
                                         <div class="text-3xl text-gray-400 font-light">/</div>
                                         <div class="text-center"><input type="number" data-key="stressThreshold" class="text-3xl font-bold text-center w-20 text-ink font-heading border-b border-dashed border-gray-400" value="10"><label class="tiny-label mt-1">Threshold</label></div>
                                     </div>
-                                    <textarea data-key="trauma" class="text-xs italic font-serif h-12 w-full bg-transparent border-t border-dashed border-gray-400 pt-3" placeholder="Scars and traumas..."></textarea>
+
+                                    <div class="space-y-2 text-xs font-serif pt-2 border-t border-dashed border-gray-400">
+                                        <div>
+                                            <label class="tiny-label text-blood font-bold">Scar Appearance & Type</label>
+                                            <input type="text" data-key="scarDesc" class="w-full italic border-b border-dashed border-gray-400" placeholder="e.g., Branching burn pattern across lower back">
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="tiny-label">Scar Location</label>
+                                                <input type="text" data-key="scarLocation" class="w-full italic border-b border-dashed border-gray-400" placeholder="e.g., Back / Visible">
+                                            </div>
+                                            <div>
+                                                <label class="tiny-label">Scar/Trauma Cause</label>
+                                                <input type="text" data-key="scarCause" class="w-full italic border-b border-dashed border-gray-400" placeholder="e.g., Fracture event / Ancient machine">
+                                            </div>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="tiny-label">Trauma Event & Person</label>
+                                                <input type="text" data-key="traumaEvent" class="w-full italic border-b border-dashed border-gray-400" placeholder="e.g., Mentor trapped inside machine during disaster">
+                                            </div>
+                                            <div>
+                                                <label class="tiny-label">Severity Level</label>
+                                                <input type="text" data-key="traumaSeverity" class="w-full italic border-b border-dashed border-gray-400" placeholder="e.g., Deep Trauma">
+                                            </div>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="tiny-label">Trigger</label>
+                                                <input type="text" data-key="traumaTrigger" class="w-full italic border-b border-dashed border-gray-400" placeholder="e.g., Large machinery activating">
+                                            </div>
+                                            <div>
+                                                <label class="tiny-label">Response & Coping</label>
+                                                <input type="text" data-key="traumaResponse" class="w-full italic border-b border-dashed border-gray-400" placeholder="e.g., Protect / Obsessively study ancient machinery">
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="tiny-label">Strength / Situational Benefit</label>
+                                            <input type="text" data-key="traumaStrength" class="w-full italic border-b border-dashed border-gray-400 text-green-900 font-semibold" placeholder="e.g., 1/Long Rest Advantage on checks operating complex machines">
+                                        </div>
+                                        <div>
+                                            <label class="tiny-label">Complication / Narrative Hook</label>
+                                            <input type="text" data-key="traumaComplication" class="w-full italic border-b border-dashed border-gray-400 text-blood font-semibold" placeholder="e.g., Difficulty walking away when companion is trapped by machinery">
+                                        </div>
+                                        <div>
+                                            <label class="tiny-label">Growth & Healing Path</label>
+                                            <input type="text" data-key="traumaGrowth" class="w-full italic border-b border-dashed border-gray-400" placeholder="e.g., Freeing someone trapped without endangering the party">
+                                        </div>
+                                    </div>
+                                    <textarea data-key="trauma" class="text-xs italic font-serif h-12 w-full bg-transparent border-t border-dashed border-gray-400 pt-3 mt-2" placeholder="Additional scars, memories, and traumas..."></textarea>
                                 </div>
 
                                 <div id="dynamic-class-trackers-card" class="sheet-card hidden">
@@ -921,7 +976,7 @@
         </div>
     </div>
 
-    <!-- Custom Script (Fixed Path) -->
+    <!-- Custom Script -->
     <script type="module" src="js/app.js"></script>
 </body>
 </html>
