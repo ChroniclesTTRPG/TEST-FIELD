@@ -93,13 +93,13 @@ window.getVocationAliases = () => {
 };
 
 window.getHitDie = (className) => {
-    if (!className) return 8; // Default
+    if (!className) return 8; 
     const c = className.toLowerCase();
     const aliases = window.getVocationAliases();
     if (c.includes(aliases['vanguard'])) return 12;
     if (c.includes(aliases['warrior']) || c.includes(aliases['heartbound']) || c.includes(aliases['nomad'])) return 10;
     if (c.includes(aliases['scriptweaver']) || c.includes(aliases['archivist'])) return 6;
-    return 8; // Default for Orator, Chronicler, Warden, Peacekeeper, Scavenger, War-Touched, Fabricator
+    return 8; 
 };
 
 window.autoCalcHP = (force = false) => {
@@ -122,9 +122,9 @@ window.autoCalcHP = (force = false) => {
         
         for (let i = 0; i < lvl; i++) {
             if (idx === 0 && i === 0) {
-                totalHp += (hd + conMod); // Level 1 Max HP rule
+                totalHp += (hd + conMod); 
             } else {
-                totalHp += (Math.floor(hd / 2) + 1 + conMod); // Standard Average HP level up rule
+                totalHp += (Math.floor(hd / 2) + 1 + conMod); 
             }
         }
     });
@@ -280,7 +280,6 @@ if (!appId) {
         appId = "demo_campaign";
     } else {
         try {
-            // STEP OUT TO NEXUS DIRECTORY IF NO CAMPAIGN ID
             window.location.href = "../campaigns.html";
         } catch(e) {}
     }
@@ -289,12 +288,9 @@ if (!appId) {
 window.routeTo = (page) => {
     try {
         let targetUrl = page;
-        
-        // Step out to nexus folder if heading back to campaigns
         if (page === 'campaigns.html') {
             targetUrl = '../campaigns.html';
         }
-
         if (appId && appId !== "demo_campaign") {
             if (page !== 'campaigns.html') {
                 targetUrl += `?id=${appId}`;
@@ -343,7 +339,7 @@ const COMA_COMPLICATIONS = [
 
 const getRoll = (sides) => Math.floor(Math.random() * sides) + 1;
 
-// --- STRESS THRESHOLD & TRAUMA AUTOMATION ---
+// --- STRESS THRESHOLD CHECK ---
 window.checkStressThreshold = (val) => {
     const curStress = parseInt(val) || 0;
     const thresholdInput = document.querySelector('[data-key="stressThreshold"]');
@@ -352,14 +348,23 @@ window.checkStressThreshold = (val) => {
 
     if (curStress >= threshold) {
         if (alertBanner) alertBanner.classList.remove('hidden');
-        window.showToast(`⚠️ Stress threshold (${threshold}) reached! Roll a Scar & Trauma.`);
+        window.showToast(`⚡ Stress threshold (${threshold}) reached! Scars & Trauma unlock.`);
     } else {
         if (alertBanner) alertBanner.classList.add('hidden');
     }
 };
 
-// --- SCARS & TRAUMA FRAMEWORK GENERATOR ---
-window.generateScarsAndTrauma = (isThresholdTrigger = false) => {
+// --- SCARS & TRAUMA FRAMEWORK GENERATOR (RESTRICTED TO THRESHOLD ONLY) ---
+window.generateScarsAndTrauma = () => {
+    const curStress = parseInt(document.querySelector('[data-key="currentStress"]')?.value) || 0;
+    const threshold = parseInt(document.querySelector('[data-key="stressThreshold"]')?.value) || 10;
+
+    // STRICT CHECK: Cannot roll unless current stress meets or exceeds the threshold
+    if (curStress < threshold) {
+        window.showToast(`Cannot roll Scars & Trauma! Current Stress (${curStress}) is below threshold (${threshold}).`);
+        return;
+    }
+
     const getD100 = () => Math.floor(Math.random() * 100) + 1;
     const getD20 = () => Math.floor(Math.random() * 20) + 1;
 
@@ -421,14 +426,12 @@ window.generateScarsAndTrauma = (isThresholdTrigger = false) => {
     setKeyVal("traumaStrength", `Mechanical Effect: ${eff}`);
     setKeyVal("traumaComplication", `DM Narrative Hook: Triggered by ${traumaTrig}`);
 
-    // If triggered by reaching stress threshold, reset stress back to 0
-    if (isThresholdTrigger) {
-        setKeyVal("currentStress", 0);
-        document.getElementById('stress-threshold-alert')?.classList.add('hidden');
-    }
+    // RESET STRESS BACK TO 0 AFTER ROLLING TRAUMA
+    setKeyVal("currentStress", 0);
+    document.getElementById('stress-threshold-alert')?.classList.add('hidden');
 
     window.saveCurrentCharacter();
-    window.showToast("Scars & Trauma Framework Generated!");
+    window.showToast("Scars & Trauma Generated! Stress reset to 0.");
 };
 
 const DEFAULT_MODULES = {
@@ -487,7 +490,7 @@ window.openSettingsModal = () => {
 
     Object.keys(DEFAULT_MODULES).forEach(k => {
         const el = document.getElementById(k);
-        if (el) el.checked = mods[k] !== false; // defaults to true
+        if (el) el.checked = mods[k] !== false;
     });
 
     document.getElementById('settings-modal').classList.remove('hidden');
@@ -617,7 +620,7 @@ window.openPartyModal = () => { document.getElementById('party-modal')?.classLis
 window.createParty = async () => { const n = document.getElementById('party-name-input'); if (!n || !n.value) return; await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'parties'), {name: n.value, createdAt: Date.now()}); document.getElementById('party-modal').classList.add('hidden'); n.value = ''; window.showToast("Party Formed"); };
 
 window.openCompanionSheet = (e, petId) => {
-    e.stopPropagation(); // Stops the click from opening the PC sheet
+    e.stopPropagation();
     try {
         let targetUrl = `companions.html?openSheet=${petId}`;
         if (appId && appId !== "demo_campaign") {
@@ -785,11 +788,43 @@ function syncSheetData() {
         }
     }
 
-    /* PROGRESSION LOCKS */
+    /* PROGRESSION & ABILITY ROLL LOCKS */
     const dmUnlockCheck = document.getElementById('dm-unlock-sheet');
     if (dmUnlockCheck) dmUnlockCheck.checked = !!char.unlockedByDM;
 
-    const isLockedProgression = !isDM && !char.unlockedByDM;
+    const rollGenBtn = document.getElementById('main-gen-btn');
+    const dmResetRollBtn = document.getElementById('dm-reset-roll-btn');
+
+    // If ability scores have already been generated/applied and DM hasn't unlocked a reroll
+    if (char.scoresGenerated && !isDM && !char.unlockedByDM) {
+        if (rollGenBtn) rollGenBtn.classList.add('hidden');
+        STATS.forEach(s => {
+            const el = document.querySelector(`[data-key="${s}"]`);
+            if (el) { 
+                el.readOnly = true; 
+                el.disabled = true;
+                el.classList.add('opacity-70', 'cursor-not-allowed', 'bg-transparent'); 
+            }
+        });
+    } else {
+        if (rollGenBtn && canEdit) rollGenBtn.classList.remove('hidden');
+        STATS.forEach(s => {
+            const el = document.querySelector(`[data-key="${s}"]`);
+            if (el && canEdit) { 
+                el.readOnly = false;
+                el.disabled = false;
+                el.classList.remove('opacity-70', 'cursor-not-allowed'); 
+            }
+        });
+    }
+
+    // Show DM ability reset button inside DM oversight panel if DM and scores generated
+    if (dmResetRollBtn) {
+        dmResetRollBtn.classList.toggle('hidden', !isDM || !char.scoresGenerated);
+    }
+
+    // Check stress threshold banner
+    window.checkStressThreshold(char.currentStress || 0);
 
     const classInput = document.getElementById('class-input');
     const mClassBtn = document.getElementById('btn-multiclass');
@@ -804,26 +839,6 @@ function syncSheetData() {
             classInput.disabled = true;
             classInput.classList.add('opacity-70', 'cursor-not-allowed');
             if (mClassBtn) mClassBtn.classList.add('hidden');
-        }
-    }
-
-    const rollGenBtn = document.getElementById('main-gen-btn');
-    if (rollGenBtn) {
-        if (char.scoresGenerated && isLockedProgression) {
-            rollGenBtn.classList.add('hidden');
-            STATS.forEach(s => {
-                const el = document.querySelector(`[data-key="${s}"]`);
-                if (el) { el.readOnly = true; el.classList.add('opacity-70', 'cursor-not-allowed', 'bg-transparent'); }
-            });
-        } else {
-            if (canEdit) rollGenBtn.classList.remove('hidden');
-            STATS.forEach(s => {
-                const el = document.querySelector(`[data-key="${s}"]`);
-                if (el && canEdit) { 
-                    el.readOnly = false;
-                    el.classList.remove('opacity-70', 'cursor-not-allowed'); 
-                }
-            });
         }
     }
     
@@ -1023,20 +1038,71 @@ window.applyHpAdjustment = async (type) => {
     document.getElementById('hp-adjustment-modal').classList.add('hidden');
 };
 
-window.openScoreGenModal = () => { sessionRerollUsed = false; document.getElementById('score-gen-modal')?.classList.remove('hidden'); document.getElementById('gen-results-area')?.classList.add('hidden'); document.getElementById('gen-apply-area')?.classList.add('hidden'); document.getElementById('gen-controls')?.classList.remove('hidden'); };
-window.generateScores = (method, isReroll = false) => { 
-    if (method === 'standard') lastGeneratedScores = [15, 14, 13, 12, 10, 8]; 
-    else { if (isReroll) sessionRerollUsed = true; lastGeneratedScores = Array.from({length: 6}, () => { const r = [getRoll(6), getRoll(6), getRoll(6), getRoll(6)]; r.sort((a,b)=>b-a); return r[0]+r[1]+r[2]; }).sort((a,b)=>b-a); } 
-    document.getElementById('gen-numbers-display').innerHTML = lastGeneratedScores.map(n => `<span class="score-line-val font-black mx-2 text-2xl text-ink font-serif">${n}</span>`).join(''); 
-    document.getElementById('assign-grid').innerHTML = STATS.map(s => `<div class="bg-[rgba(255,255,255,0.4)] p-2 px-3 rounded flex justify-between items-center border border-gold"><span class="font-bold text-[10px] uppercase text-555 font-heading">${s}</span><select data-assign-stat="${s}" class="text-xs font-bold border-none bg-transparent focus:ring-0 text-ink"><option value="">-</option>${lastGeneratedScores.map((n, i) => `<option value="${i}">${n}</option>`).join('')}</select></div>`).join(''); 
-    document.getElementById('gen-results-area')?.classList.remove('hidden'); document.getElementById('gen-apply-area')?.classList.remove('hidden'); document.getElementById('gen-controls')?.classList.add('hidden'); document.getElementById('heroic-reroll-area')?.classList.toggle('hidden', method !== 'heroic' || sessionRerollUsed); 
+// --- SCORE GENERATION WITH PERMANENT LOCK & DM REROLL ---
+window.openScoreGenModal = () => { 
+    const char = characters.find(c => c.id === activeCharId);
+    const isDM = activeRole === 'dm';
+    
+    if (char && char.scoresGenerated && !isDM && !char.unlockedByDM) {
+        window.showToast("Ability scores have already been locked for this adventurer. Ask your DM for a reroll.");
+        return;
+    }
+
+    sessionRerollUsed = false; 
+    document.getElementById('score-gen-modal')?.classList.remove('hidden'); 
+    document.getElementById('gen-results-area')?.classList.add('hidden'); 
+    document.getElementById('gen-apply-area')?.classList.add('hidden'); 
+    document.getElementById('gen-controls')?.classList.remove('hidden'); 
 };
 
-window.randomizeAssignment = () => { const p = [0,1,2,3,4,5].sort(()=>Math.random()-0.5); Array.from(document.querySelectorAll('[data-assign-stat]')).forEach((s,i)=>s.value=p[i]); };
+window.generateScores = (method, isReroll = false) => { 
+    if (method === 'standard') lastGeneratedScores = [15, 14, 13, 12, 10, 8]; 
+    else { 
+        if (isReroll) sessionRerollUsed = true; 
+        lastGeneratedScores = Array.from({length: 6}, () => { 
+            const r = [getRoll(6), getRoll(6), getRoll(6), getRoll(6)]; 
+            r.sort((a,b)=>b-a); 
+            return r[0]+r[1]+r[2]; 
+        }).sort((a,b)=>b-a); 
+    } 
+
+    document.getElementById('gen-numbers-display').innerHTML = lastGeneratedScores.map(n => `<span class="score-line-val font-black mx-2 text-2xl text-ink font-serif">${n}</span>`).join(''); 
+    document.getElementById('assign-grid').innerHTML = STATS.map(s => `<div class="bg-[rgba(255,255,255,0.4)] p-2 px-3 rounded flex justify-between items-center border border-gold"><span class="font-bold text-[10px] uppercase text-555 font-heading">${s}</span><select data-assign-stat="${s}" class="text-xs font-bold border-none bg-transparent focus:ring-0 text-ink"><option value="">-</option>${lastGeneratedScores.map((n, i) => `<option value="${i}">${n}</option>`).join('')}</select></div>`).join(''); 
+    document.getElementById('gen-results-area')?.classList.remove('hidden'); 
+    document.getElementById('gen-apply-area')?.classList.remove('hidden'); 
+    document.getElementById('gen-controls')?.classList.add('hidden'); 
+    document.getElementById('heroic-reroll-area')?.classList.toggle('hidden', method !== 'heroic' || sessionRerollUsed); 
+};
+
+window.randomizeAssignment = () => { 
+    const p = [0,1,2,3,4,5].sort(()=>Math.random()-0.5); 
+    Array.from(document.querySelectorAll('[data-assign-stat]')).forEach((s,i)=>s.value=p[i]); 
+};
+
 window.applyScores = async () => { 
-    const selects = Array.from(document.querySelectorAll('[data-assign-stat]')); const chosen = selects.map(s => s.value).filter(v => v !== ""); if (chosen.length < 6 || new Set(chosen).size < 6) return window.showToast("Assign unique values to all stats"); 
-    const updates = { scoresGenerated: true }; selects.forEach(s => updates[s.dataset.assignStat] = lastGeneratedScores[parseInt(s.value)]); 
-    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'characters', activeCharId), updates); document.getElementById('score-gen-modal')?.classList.add('hidden'); window.calcMods(); 
+    const selects = Array.from(document.querySelectorAll('[data-assign-stat]')); 
+    const chosen = selects.map(s => s.value).filter(v => v !== ""); 
+    if (chosen.length < 6 || new Set(chosen).size < 6) return window.showToast("Assign unique values to all stats"); 
+    
+    const updates = { scoresGenerated: true, unlockedByDM: false }; 
+    selects.forEach(s => updates[s.dataset.assignStat] = lastGeneratedScores[parseInt(s.value)]); 
+    
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'characters', activeCharId), updates); 
+    document.getElementById('score-gen-modal')?.classList.add('hidden'); 
+    window.calcMods(); 
+    window.showToast("Ability Scores Applied & Permanently Locked!");
+};
+
+window.dmResetAbilityScores = async () => {
+    if (activeRole !== 'dm') return;
+    if (!confirm("Allow this character to re-roll and reset their Ability Scores?")) return;
+    
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'characters', activeCharId), { 
+        scoresGenerated: false,
+        unlockedByDM: true 
+    });
+    window.showToast("Ability scores unlocked for reroll.");
+    syncSheetData();
 };
 
 const addRollToHistory = async (label, total) => {
@@ -1572,7 +1638,6 @@ const setupListeners = () => {
 onAuthStateChanged(auth, async (u) => {
     if (!u) {
         try { 
-            // Step out to nexus folder on auth failure
             window.location.href = "../index.html"; 
         } catch(e) {
             document.getElementById('initial-loading').innerHTML = `<i class="fa-solid fa-triangle-exclamation text-6xl text-blood mb-6"></i><h2 class="font-heading text-2xl text-blood">Authentication Required</h2>`;
