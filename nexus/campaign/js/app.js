@@ -343,6 +343,74 @@ const COMA_COMPLICATIONS = [
 
 const getRoll = (sides) => Math.floor(Math.random() * sides) + 1;
 
+// --- SCARS & TRAUMA FRAMEWORK GENERATOR ---
+window.generateScarsAndTrauma = () => {
+    const getD100 = () => Math.floor(Math.random() * 100) + 1;
+    const getD20 = () => Math.floor(Math.random() * 20) + 1;
+
+    // Step 1 - Severity
+    const r1 = getD100();
+    const scarSev = r1 <= 15 ? "No significant scar" : r1 <= 30 ? "Minor scar" : r1 <= 50 ? "Noticeable scar" : r1 <= 70 ? "Severe scar" : r1 <= 85 ? "Multiple scars" : r1 <= 95 ? "Major disfigurement" : "Permanent injury";
+
+    // Step 2 - Type
+    const r2 = getD100();
+    const scarType = r2 <= 8 ? "Burn" : r2 <= 16 ? "Cut" : r2 <= 24 ? "Puncture" : r2 <= 32 ? "Bite" : r2 <= 40 ? "Fracture" : r2 <= 48 ? "Chemical/acid damage" : r2 <= 55 ? "Electrical damage" : r2 <= 62 ? "Script-related injury" : r2 <= 69 ? "Fracture exposure" : r2 <= 76 ? "Surgical/experimental" : r2 <= 82 ? "Creature attack" : r2 <= 88 ? "Machinery accident" : r2 <= 93 ? "Battlefield injury" : r2 <= 97 ? "Missing/damaged body part" : "Strange/unexplained scar";
+
+    // Step 3 - Location
+    const r3 = getD100();
+    const scarLoc = r3 <= 10 ? "Head" : r3 <= 18 ? "Face" : r3 <= 25 ? "Neck" : r3 <= 35 ? "Chest" : r3 <= 45 ? "Back" : r3 <= 53 ? "Arm" : r3 <= 61 ? "Hand" : r3 <= 69 ? "Leg" : r3 <= 77 ? "Foot" : r3 <= 85 ? "Multiple locations" : r3 <= 92 ? "Hidden beneath clothing" : r3 <= 97 ? "Visible to everyone" : "Unusual location";
+
+    // Step 4 - Cause
+    const r4 = getD100();
+    const scarCause = r4 <= 10 ? "Childhood accident" : r4 <= 20 ? "Wilderness accident" : r4 <= 30 ? "Creature attack" : r4 <= 40 ? "Combat" : r4 <= 48 ? "Failed Script" : r4 <= 55 ? "Industrial machinery" : r4 <= 62 ? "Fracture event" : r4 <= 68 ? "Fire" : r4 <= 74 ? "Acid/Chemical" : r4 <= 80 ? "Collapse/Disaster" : r4 <= 85 ? "Captivity" : r4 <= 90 ? "Experimentation" : r4 <= 94 ? "Deliberately caused by someone" : r4 <= 97 ? "Self-inflicted" : "Unknown";
+
+    // Step 6 - Trauma Severity
+    const r6 = getD20();
+    const traumaSev = r6 <= 5 ? "Difficult memory" : r6 <= 10 ? "Lingering experience" : r6 <= 14 ? "Significant trauma" : r6 <= 17 ? "Deep trauma" : r6 <= 19 ? "Life-defining trauma" : "Defining event";
+
+    // Step 7 - Event
+    const r7 = getD100();
+    const traumaEv = r7 <= 10 ? "Someone important died" : r7 <= 20 ? "Someone important disappeared" : r7 <= 30 ? "Home was destroyed" : r7 <= 40 ? "Betrayed by trusted person" : r7 <= 50 ? "Failed to save someone" : r7 <= 60 ? "Imprisoned/Captive" : r7 <= 68 ? "Hunted" : r7 <= 75 ? "Witnessed something horrific" : r7 <= 82 ? "Forced to hurt someone" : r7 <= 88 ? "Abandoned someone" : r7 <= 94 ? "Survived when others didn't" : r7 <= 97 ? "Caused unintended disaster" : "Fracture event connection";
+
+    // Step 8 - Person Involved
+    const r8 = getD100();
+    const personInv = r8 <= 15 ? "Parent" : r8 <= 25 ? "Sibling" : r8 <= 35 ? "Child" : r8 <= 45 ? "Friend" : r8 <= 55 ? "Mentor" : r8 <= 65 ? "Romantic partner" : r8 <= 72 ? "Commander/Superior" : r8 <= 80 ? "Entire community" : r8 <= 87 ? "Stranger" : r8 <= 93 ? "Enemy" : r8 <= 97 ? "Themselves" : "Unknown";
+
+    // Step 9 - Trigger
+    const r9 = getD100();
+    const traumaTrig = r9 <= 10 ? "Certain sound" : r9 <= 20 ? "Certain smell" : r9 <= 30 ? "Fire" : r9 <= 38 ? "Darkness" : r9 <= 46 ? "Blood or injury" : r9 <= 54 ? "Confinement" : r9 <= 62 ? "Being restrained" : r9 <= 69 ? "Machinery" : r9 <= 76 ? "A particular creature" : r9 <= 82 ? "A particular Script" : r9 <= 88 ? "Someone dying" : r9 <= 93 ? "Being abandoned" : r9 <= 97 ? "Losing control" : "Specific original event link";
+
+    // Step 10 & 11 - Response & Coping
+    const r10 = getD100();
+    const resp = r10 <= 20 ? "Fight — confront threat" : r10 <= 35 ? "Flight — escape/distance" : r10 <= 50 ? "Freeze — hesitate/overwhelmed" : r10 <= 60 ? "Focus — intensely practical" : r10 <= 70 ? "Protect — protect others" : r10 <= 80 ? "Control — attempt control" : r10 <= 90 ? "Withdraw — quiet/distant" : r10 <= 95 ? "Deflect — humor/anger" : "Adapt — search for solution";
+
+    const r11 = getD100();
+    const cope = r11 <= 8 ? "Maintain equipment" : r11 <= 16 ? "Train constantly" : r11 <= 24 ? "Keep busy" : r11 <= 32 ? "Make jokes" : r11 <= 40 ? "Stay close to trusted people" : r11 <= 48 ? "Avoid talking about it" : r11 <= 55 ? "Talk openly" : r11 <= 62 ? "Strict routines" : r11 <= 69 ? "Collect keepsakes" : r11 <= 76 ? "Help others" : r11 <= 82 ? "Study the event" : r11 <= 88 ? "Travel constantly" : r11 <= 94 ? "Create art/music" : "Turn into personal mission";
+
+    // Step 12 - Mechanical Effect
+    const r12 = getD20();
+    const eff = r12 <= 10 ? "Narrative Only" : r12 <= 14 ? "Roleplay Trait" : r12 <= 17 ? "Situational Benefit" : r12 <= 19 ? "Situational Complication" : "Benefit & Complication";
+
+    // Populate Fields safely
+    const setKeyVal = (key, val) => {
+        const el = document.querySelector(`[data-key="${key}"]`);
+        if (el) el.value = val;
+    };
+
+    setKeyVal("scarDesc", `${scarSev} (${scarType})`);
+    setKeyVal("scarLocation", scarLoc);
+    setKeyVal("scarCause", scarCause);
+    setKeyVal("traumaEvent", `${traumaEv} (Involving: ${personInv})`);
+    setKeyVal("traumaSeverity", traumaSev);
+    setKeyVal("traumaTrigger", traumaTrig);
+    setKeyVal("traumaResponse", `${resp} / ${cope}`);
+    setKeyVal("traumaStrength", `Mechanical Effect: ${eff}`);
+    setKeyVal("traumaComplication", `DM Narrative Hook: Triggered by ${traumaTrig}`);
+
+    window.saveCurrentCharacter();
+    window.showToast("Scars & Trauma Framework Generated!");
+};
+
 const DEFAULT_MODULES = {
     mod_skills: true, mod_saves: true, mod_insp: true, mod_death: true,
     mod_stress: true, mod_conditions: true, mod_defenses: true,
