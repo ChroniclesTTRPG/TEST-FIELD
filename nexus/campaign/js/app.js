@@ -352,7 +352,6 @@ window.adjustExhaustion = async (amount, reset = false) => {
 
     const updates = { exhaustion: newLvl };
 
-    // Automatic death on Level 6 Exhaustion
     if (newLvl === 6) {
         updates.status = 'dead';
         updates.hpCurrent = 0;
@@ -392,29 +391,38 @@ window.renderExhaustionUI = (lvl) => {
     }
 };
 
-// --- STRESS THRESHOLD CHECK ---
+// --- STRESS THRESHOLD CHECK & DISPLAY TOGGLE ---
 window.checkStressThreshold = (val) => {
     const curStress = parseInt(val) || 0;
     const thresholdInput = document.querySelector('[data-key="stressThreshold"]');
     const threshold = parseInt(thresholdInput?.value) || 10;
+    
     const alertBanner = document.getElementById('stress-threshold-alert');
+    const fieldsContainer = document.getElementById('scars-trauma-fields');
+    const unlockedBadge = document.getElementById('trauma-unlocked-badge');
+
+    const scarDesc = document.querySelector('[data-key="scarDesc"]')?.value;
+    const hasExistingData = scarDesc && scarDesc.trim() !== '';
 
     if (curStress >= threshold) {
-        if (alertBanner) alertBanner.classList.remove('hidden');
-        window.showToast(`⚡ Stress threshold (${threshold}) reached! Scars & Trauma unlock.`);
+        if (alertBanner && !hasExistingData) alertBanner.classList.remove('hidden');
+        if (fieldsContainer && hasExistingData) fieldsContainer.classList.remove('hidden');
+        if (unlockedBadge && hasExistingData) unlockedBadge.classList.remove('hidden');
+        if (!hasExistingData) window.showToast(`⚡ Stress threshold (${threshold}) reached! Roll your Scar & Trauma.`);
     } else {
         if (alertBanner) alertBanner.classList.add('hidden');
+        if (fieldsContainer) fieldsContainer.classList.toggle('hidden', !hasExistingData);
+        if (unlockedBadge) unlockedBadge.classList.toggle('hidden', !hasExistingData);
     }
 };
 
-// --- SCARS & TRAUMA FRAMEWORK GENERATOR (RESTRICTED TO THRESHOLD ONLY) ---
+// --- GENERATE SCARS & TRAUMA (UNLOCKED ONLY AT THRESHOLD) ---
 window.generateScarsAndTrauma = () => {
     const curStress = parseInt(document.querySelector('[data-key="currentStress"]')?.value) || 0;
     const threshold = parseInt(document.querySelector('[data-key="stressThreshold"]')?.value) || 10;
 
-    // STRICT CHECK: Cannot roll unless current stress meets or exceeds the threshold
     if (curStress < threshold) {
-        window.showToast(`Cannot roll Scars & Trauma! Current Stress (${curStress}) is below threshold (${threshold}).`);
+        window.showToast(`Cannot roll! Stress (${curStress}) must be at least ${threshold}.`);
         return;
     }
 
@@ -479,12 +487,14 @@ window.generateScarsAndTrauma = () => {
     setKeyVal("traumaStrength", `Mechanical Effect: ${eff}`);
     setKeyVal("traumaComplication", `DM Narrative Hook: Triggered by ${traumaTrig}`);
 
-    // RESET STRESS BACK TO 0 AFTER ROLLING TRAUMA
+    // Reset stress back to 0 and reveal framework
     setKeyVal("currentStress", 0);
     document.getElementById('stress-threshold-alert')?.classList.add('hidden');
+    document.getElementById('scars-trauma-fields')?.classList.remove('hidden');
+    document.getElementById('trauma-unlocked-badge')?.classList.remove('hidden');
 
     window.saveCurrentCharacter();
-    window.showToast("Scars & Trauma Generated! Stress reset to 0.");
+    window.showToast("Scars & Trauma Framework Unlocked & Generated! Stress reset to 0.");
 };
 
 const DEFAULT_MODULES = {
@@ -848,7 +858,6 @@ function syncSheetData() {
     const rollGenBtn = document.getElementById('main-gen-btn');
     const dmResetRollBtn = document.getElementById('dm-reset-roll-btn');
 
-    // If ability scores have already been generated/applied and DM hasn't unlocked a reroll
     if (char.scoresGenerated && !isDM && !char.unlockedByDM) {
         if (rollGenBtn) rollGenBtn.classList.add('hidden');
         STATS.forEach(s => {
@@ -871,12 +880,11 @@ function syncSheetData() {
         });
     }
 
-    // Show DM ability reset button inside DM oversight panel if DM and scores generated
     if (dmResetRollBtn) {
         dmResetRollBtn.classList.toggle('hidden', !isDM || !char.scoresGenerated);
     }
 
-    // Check stress threshold banner
+    // Check stress threshold & framework fields
     window.checkStressThreshold(char.currentStress || 0);
 
     // Render exhaustion UI
