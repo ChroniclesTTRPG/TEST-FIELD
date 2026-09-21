@@ -137,7 +137,7 @@
                             </div>
                         </div>
                         <div class="flex flex-col items-start md:items-end gap-2 shrink-0">
-                            <h4 class="text-xs font-black uppercase text-[#f59e0b] font-heading tracking-wider mb-0.5">Status</h4>
+                            <h4 class="text-xs font-black uppercase text-[#f59e0b] font-heading tracking-wider mb-0.5">Status & Rerolls</h4>
                             <div class="flex gap-2 font-heading">
                                 <button onclick="window.updateCharStatus('alive')" class="bg-[#166534] hover:bg-[#15803d] text-white px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow transition-colors">Alive</button>
                                 <button onclick="window.updateCharStatus('coma')" class="bg-[#92400e] hover:bg-[#b45309] text-white px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow transition-colors">Coma</button>
@@ -147,6 +147,7 @@
                                 <input type="checkbox" id="dm-unlock-sheet" class="w-3 h-3 accent-[#f59e0b] cursor-pointer" onchange="window.toggleSheetUnlock(this.checked)">
                                 <label for="dm-unlock-sheet" class="text-[9px] font-black uppercase text-[#f59e0b] tracking-wider font-heading cursor-pointer">Unlock Class/Stats for Player</label>
                             </div>
+                            <button id="dm-reset-roll-btn" onclick="window.dmResetAbilityScores()" class="hidden mt-1 bg-blood hover:bg-red-800 text-parchment px-4 py-1.5 rounded text-[9px] font-black uppercase tracking-widest shadow border border-gold font-heading">Reset Ability Score Roll</button>
                         </div>
                     </div>
                 </div>
@@ -286,13 +287,25 @@
                                 <div class="sheet-card" id="sheet-card-stress">
                                     <div class="flex justify-between items-center border-b border-[rgba(139,90,43,0.3)] pb-2 mb-3">
                                         <h3 id="label-term-stress-header" class="!border-b-0 !mb-0">Stress, Scars & Trauma</h3>
-                                        <button onclick="window.generateScarsAndTrauma()" class="text-[8px] bg-transparent border border-blood text-blood px-2 py-0.5 rounded font-bold hover:bg-blood hover:text-parchment transition-colors font-heading read-only-hide" title="Roll Random Scars & Trauma Framework">🎲 Roll Framework</button>
+                                        <button onclick="window.generateScarsAndTrauma()" class="text-[8px] bg-transparent border border-blood text-blood px-2 py-0.5 rounded font-bold hover:bg-blood hover:text-parchment transition-colors font-heading read-only-hide" title="Roll Scars & Trauma (Requires Stress >= Threshold)">🎲 Roll Framework</button>
                                     </div>
                                     
                                     <div class="flex justify-around items-center mb-4 mt-2">
-                                        <div class="text-center"><input type="number" data-key="currentStress" class="text-3xl font-bold text-center w-20 text-blood font-heading border-b border-dashed border-gray-400" value="0"><label class="tiny-label mt-1">Current Stress</label></div>
+                                        <div class="text-center">
+                                            <input type="number" data-key="currentStress" class="text-3xl font-bold text-center w-20 text-blood font-heading border-b border-dashed border-gray-400" value="0" onchange="window.checkStressThreshold(this.value)">
+                                            <label class="tiny-label mt-1">Current Stress</label>
+                                        </div>
                                         <div class="text-3xl text-gray-400 font-light">/</div>
-                                        <div class="text-center"><input type="number" data-key="stressThreshold" class="text-3xl font-bold text-center w-20 text-ink font-heading border-b border-dashed border-gray-400" value="10"><label class="tiny-label mt-1">Threshold</label></div>
+                                        <div class="text-center">
+                                            <input type="number" data-key="stressThreshold" class="text-3xl font-bold text-center w-20 text-ink font-heading border-b border-dashed border-gray-400" value="10">
+                                            <label class="tiny-label mt-1">Threshold</label>
+                                        </div>
+                                    </div>
+
+                                    <!-- Threshold Alert Banner -->
+                                    <div id="stress-threshold-alert" class="hidden mb-3 p-2 bg-blood/20 border border-blood rounded text-center">
+                                        <span class="text-[10px] font-heading font-black text-blood uppercase tracking-widest block">⚡ Stress Threshold Reached!</span>
+                                        <button onclick="window.generateScarsAndTrauma()" class="text-[9px] fantasy-btn px-3 py-1 rounded mt-1 font-heading uppercase">Generate Scar & Trauma</button>
                                     </div>
 
                                     <div class="space-y-2 text-xs font-serif pt-2 border-t border-dashed border-gray-400">
@@ -415,16 +428,35 @@
                                             </div>
                                         </div>
 
+                                        <!-- EXHAUSTION & CONDITIONS PANEL -->
                                         <div id="section-conditions">
                                             <div id="label-term-conditions" class="beyond-header">Conditions & Exhaustion</div>
+                                            
                                             <div class="bg-[rgba(255,255,255,0.3)] border border-[rgba(139,90,43,0.3)] rounded p-4 shadow-inner mb-4">
                                                 <div class="mb-4">
-                                                    <label class="prof-label">Exhaustion Level (0-6)</label>
-                                                    <div class="flex items-center gap-3">
-                                                        4: HP Max Halved | 5: Speed 0 | 6: Death
+                                                    <div class="flex justify-between items-center mb-2">
+                                                        <label class="prof-label mb-0">Exhaustion Level</label>
+                                                        <div class="flex items-center gap-2 font-heading read-only-hide">
+                                                            <button onclick="window.adjustExhaustion(-1)" class="w-7 h-7 bg-transparent border border-blood text-blood font-black rounded hover:bg-blood hover:text-parchment transition-colors flex items-center justify-center text-sm">-</button>
+                                                            <span id="exhaustion-level-display" class="text-xl font-black text-blood font-heading w-8 text-center">0</span>
+                                                            <button onclick="window.adjustExhaustion(1)" class="w-7 h-7 bg-blood border border-gold text-parchment font-black rounded hover:bg-red-800 transition-colors flex items-center justify-center text-sm">+</button>
+                                                            <button onclick="window.adjustExhaustion(0, true)" class="text-[9px] bg-transparent border border-gray-600 text-gray-600 px-2 py-1 rounded font-bold uppercase hover:bg-gray-600 hover:text-parchment transition-colors ml-2">Reset</button>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <input type="hidden" data-key="exhaustion" id="exhaustion-val-input" value="0">
+
+                                                    <div id="exhaustion-effects-list" class="space-y-1.5 mt-3 text-[10px] font-heading uppercase font-bold">
+                                                        <div id="ex-lvl-1" class="p-1.5 rounded border border-gray-400/30 text-gray-500 flex items-center justify-between"><span>Level 1: Disadvantage on ability checks</span><span class="ex-status font-black text-[9px]">INACTIVE</span></div>
+                                                        <div id="ex-lvl-2" class="p-1.5 rounded border border-gray-400/30 text-gray-500 flex items-center justify-between"><span>Level 2: Speed halved</span><span class="ex-status font-black text-[9px]">INACTIVE</span></div>
+                                                        <div id="ex-lvl-3" class="p-1.5 rounded border border-gray-400/30 text-gray-500 flex items-center justify-between"><span>Level 3: Disadvantage on attack rolls & saves</span><span class="ex-status font-black text-[9px]">INACTIVE</span></div>
+                                                        <div id="ex-lvl-4" class="p-1.5 rounded border border-gray-400/30 text-gray-500 flex items-center justify-between"><span>Level 4: Hit point maximum halved</span><span class="ex-status font-black text-[9px]">INACTIVE</span></div>
+                                                        <div id="ex-lvl-5" class="p-1.5 rounded border border-gray-400/30 text-gray-500 flex items-center justify-between"><span>Level 5: Speed reduced to 0</span><span class="ex-status font-black text-[9px]">INACTIVE</span></div>
+                                                        <div id="ex-lvl-6" class="p-1.5 rounded border border-gray-400/30 text-gray-500 flex items-center justify-between"><span>Level 6: Death</span><span class="ex-status font-black text-[9px]">INACTIVE</span></div>
                                                     </div>
                                                 </div>
                                             </div>
+
                                             <div class="prof-label mb-2 border-t border-dashed border-[rgba(139,90,43,0.3)] pt-2">Active Conditions</div>
                                             <div class="grid grid-cols-2 sm:grid-cols-3 gap-y-2 gap-x-2">
                                                 <label class="cond-row"><input type="checkbox" data-key="cond_blinded"> Blinded</label>
@@ -975,81 +1007,6 @@
             </button>
         </div>
     </div>
-    <!-- SCARS & TRAUMA FRAMEWORK -->
-<div class="sheet-card" id="sheet-card-stress">
-    <div class="flex justify-between items-center border-b border-[rgba(139,90,43,0.3)] pb-2 mb-3">
-        <h3 id="label-term-stress-header" class="!border-b-0 !mb-0">Stress, Scars & Trauma</h3>
-        <button onclick="window.generateScarsAndTrauma()" class="text-[8px] bg-transparent border border-blood text-blood px-2 py-0.5 rounded font-bold hover:bg-blood hover:text-parchment transition-colors font-heading read-only-hide" title="Roll Random Scars & Trauma Framework">🎲 Roll Framework</button>
-    </div>
-    
-    <div class="flex justify-around items-center mb-4 mt-2">
-        <div class="text-center">
-            <input type="number" data-key="currentStress" class="text-3xl font-bold text-center w-20 text-blood font-heading border-b border-dashed border-gray-400" value="0" onchange="window.checkStressThreshold(this.value)">
-            <label class="tiny-label mt-1">Current Stress</label>
-        </div>
-        <div class="text-3xl text-gray-400 font-light">/</div>
-        <div class="text-center">
-            <input type="number" data-key="stressThreshold" class="text-3xl font-bold text-center w-20 text-ink font-heading border-b border-dashed border-gray-400" value="10">
-            <label class="tiny-label mt-1">Threshold</label>
-        </div>
-    </div>
-
-    <!-- Threshold Alert Banner -->
-    <div id="stress-threshold-alert" class="hidden mb-3 p-2 bg-blood/20 border border-blood rounded text-center">
-        <span class="text-[10px] font-heading font-black text-blood uppercase tracking-widest block">⚡ Stress Threshold Reached!</span>
-        <button onclick="window.generateScarsAndTrauma(true)" class="text-[9px] fantasy-btn px-3 py-1 rounded mt-1 font-heading uppercase">Generate Scar & Trauma</button>
-    </div>
-
-    <div class="space-y-2 text-xs font-serif pt-2 border-t border-dashed border-gray-400">
-        <div>
-            <label class="tiny-label text-blood font-bold">Scar Appearance & Type</label>
-            <input type="text" data-key="scarDesc" class="w-full italic border-b border-dashed border-gray-400" placeholder="e.g., Branching burn pattern across lower back">
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-            <div>
-                <label class="tiny-label">Scar Location</label>
-                <input type="text" data-key="scarLocation" class="w-full italic border-b border-dashed border-gray-400" placeholder="e.g., Back / Visible">
-            </div>
-            <div>
-                <label class="tiny-label">Scar/Trauma Cause</label>
-                <input type="text" data-key="scarCause" class="w-full italic border-b border-dashed border-gray-400" placeholder="e.g., Fracture event / Ancient machine">
-            </div>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-            <div>
-                <label class="tiny-label">Trauma Event & Person</label>
-                <input type="text" data-key="traumaEvent" class="w-full italic border-b border-dashed border-gray-400" placeholder="e.g., Mentor trapped inside machine during disaster">
-            </div>
-            <div>
-                <label class="tiny-label">Severity Level</label>
-                <input type="text" data-key="traumaSeverity" class="w-full italic border-b border-dashed border-gray-400" placeholder="e.g., Deep Trauma">
-            </div>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-            <div>
-                <label class="tiny-label">Trigger</label>
-                <input type="text" data-key="traumaTrigger" class="w-full italic border-b border-dashed border-gray-400" placeholder="e.g., Large machinery activating">
-            </div>
-            <div>
-                <label class="tiny-label">Response & Coping</label>
-                <input type="text" data-key="traumaResponse" class="w-full italic border-b border-dashed border-gray-400" placeholder="e.g., Protect / Obsessively study ancient machinery">
-            </div>
-        </div>
-        <div>
-            <label class="tiny-label">Strength / Situational Benefit</label>
-            <input type="text" data-key="traumaStrength" class="w-full italic border-b border-dashed border-gray-400 text-green-900 font-semibold" placeholder="e.g., 1/Long Rest Advantage on checks operating complex machines">
-        </div>
-        <div>
-            <label class="tiny-label">Complication / Narrative Hook</label>
-            <input type="text" data-key="traumaComplication" class="w-full italic border-b border-dashed border-gray-400 text-blood font-semibold" placeholder="e.g., Difficulty walking away when companion is trapped by machinery">
-        </div>
-        <div>
-            <label class="tiny-label">Growth & Healing Path</label>
-            <input type="text" data-key="traumaGrowth" class="w-full italic border-b border-dashed border-gray-400" placeholder="e.g., Freeing someone trapped without endangering the party">
-        </div>
-    </div>
-    <textarea data-key="trauma" class="text-xs italic font-serif h-12 w-full bg-transparent border-t border-dashed border-gray-400 pt-3 mt-2" placeholder="Additional scars, memories, and traumas..."></textarea>
-</div>
 
     <!-- Custom Script -->
     <script type="module" src="js/app.js"></script>
