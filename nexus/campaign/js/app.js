@@ -278,8 +278,8 @@ window.autoCalcHP = (force = false) => {
 window.updateClassSpecifics = () => {
     const inputVal = (document.getElementById('class-input')?.value || '').toLowerCase();
     let matchedClasses = [];
-    for (const k in VOCATION_DATA) {
-        if (inputVal.includes(k) || inputVal.includes(VOCATION_DATA[k].name.toLowerCase())) {
+    for (const k in VOCATION_CONFIG) {
+        if (inputVal.includes(k) || inputVal.includes(VOCATION_CONFIG[k].name.toLowerCase())) {
             matchedClasses.push(k);
         }
     }
@@ -307,7 +307,7 @@ window.updateClassSpecifics = () => {
     let allEquip = [];
 
     matchedClasses.forEach(matchedClass => {
-        const data = VOCATION_DATA[matchedClass];
+        const data = VOCATION_CONFIG[matchedClass];
         allTrackers = [...new Set([...allTrackers, ...data.trackers])];
         allFeatures = [...new Set([...allFeatures, ...data.features])];
         allEquip = [...new Set([...allEquip, ...data.equip])];
@@ -1464,6 +1464,98 @@ window.toggleRoller = (minimize) => {
         exp.classList.remove('hidden');
         min.classList.add('hidden');
     }
+};
+
+// --- SCRIPTCASTING GRID RENDERER WITH FIXED FILTERING & AEONFALL RULES ---
+window.renderMovesGrid = () => { 
+    const s = document.getElementById('moves-selector'); if (!s) return; 
+    const t = s.value; const g = document.getElementById('features-lvl-grid'); if (!g) return; 
+    g.innerHTML = '';
+    
+    const char = characters.find(c => c.id === activeCharId); 
+    const moves = char?.moves || []; 
+    let levels = [];
+
+    const scriptTerm = campaignSettings?.terms?.sheet_scripts || "Scriptcasting";
+    const tricksTerm = campaignSettings?.terms?.sheet_tricks || "Tricks (0)";
+
+    const FULL_SCRIPTCASTERS = ['archivist', 'scriptweaver', 'wartouched', 'orator', 'warden', 'chronicler'];
+    const HALF_SCRIPTCASTERS = ['heartbound', 'nomad', 'fabricator'];
+    
+    if (t === 'features') {
+        levels = Array.from({length: 20}, (_, i) => `Level ${i + 1}`);
+    } else {
+        let classes = char?.classes || [];
+        if (classes.length === 0 && char?.class) {
+            classes = [{ name: char.class }];
+        }
+
+        let maxScriptLevel = -1;
+        let includesTricks = false;
+
+        classes.forEach(clsObj => {
+            const vKey = window.getVocationKey(clsObj.name);
+
+            if (FULL_SCRIPTCASTERS.includes(vKey)) {
+                maxScriptLevel = Math.max(maxScriptLevel, 9);
+                includesTricks = true;
+            } else if (HALF_SCRIPTCASTERS.includes(vKey)) {
+                maxScriptLevel = Math.max(maxScriptLevel, 5);
+                if (vKey === 'fabricator') includesTricks = true;
+            } else if (vKey === 'warrior' || vKey === 'scavenger') {
+                maxScriptLevel = Math.max(maxScriptLevel, 4);
+                includesTricks = true;
+            }
+        });
+
+        if (maxScriptLevel === -1) {
+            g.innerHTML = `
+                <div class="col-span-full text-center py-12 px-4 border border-dashed border-gold rounded bg-[rgba(255,255,255,0.2)] font-heading">
+                    <i class="fa-solid fa-scroll text-3xl text-gold/60 mb-2"></i>
+                    <h4 class="text-xs font-bold text-blood uppercase tracking-widest mb-1">No ${scriptTerm} Available</h4>
+                    <p class="text-[11px] text-555 font-serif italic max-w-md mx-auto">This vocation relies on physical training, discipline, or practical expertise. Select Features or assign a Script-trained vocation to view ${scriptTerm}.</p>
+                </div>`;
+            return;
+        } else {
+            if (includesTricks) levels.push(tricksTerm);
+            for (let i = 1; i <= maxScriptLevel; i++) {
+                levels.push(`Level ${i}`);
+            }
+        }
+    }
+
+    const canEdit = (currentUser?.username && char?.owner === currentUser?.username) || char?.owner === 'DM' || activeRole === 'dm';
+    levels.forEach(lvl => { 
+        const card = document.createElement('div'); 
+        card.className = "lvl-card"; 
+        
+        // Flexible matching: check against 'features' / 'actions' and 'scriptcasting' / 'scripts'
+        const filtered = moves.filter(m => {
+            const mLevelMatches = m.lvl === lvl;
+            if (!mLevelMatches) return false;
+
+            if (t === 'features') {
+                return !m.type || m.type === 'features' || m.type === 'actions';
+            } else {
+                return m.type === 'scriptcasting' || m.type === 'scripts';
+            }
+        });
+
+        let html = `<div class="lvl-header">${lvl.toUpperCase()}</div><div class="flex-grow space-y-1">`;
+        filtered.forEach(m => { 
+            const mIdx = moves.indexOf(m); 
+            html += `<div class="move-pill" ${canEdit ? `onclick="window.openMoveModal('${lvl}', ${mIdx})"` : ''}><span class="move-name">${m.name}</span><span class="move-roll">${m.roll || ''}</span></div>`; 
+        });
+
+        if (canEdit) {
+            html += `</div><button onclick="window.openMoveModal('${lvl}')" class="text-[9px] font-bold uppercase text-blood hover:text-ink text-center mt-2 font-heading transition-colors">+ ADD</button>`; 
+        } else {
+            html += `</div>`;
+        }
+        
+        card.innerHTML = html; 
+        g.appendChild(card);
+    }); 
 };
 
 window.openMoveModal = (lvl, idx = null) => { 
