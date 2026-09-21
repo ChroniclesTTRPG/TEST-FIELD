@@ -223,6 +223,10 @@ window.getProficiencyBonus = (charLvl) => {
     return l >= 17 ? 6 : l >= 13 ? 5 : l >= 9 ? 4 : l >= 5 ? 3 : 2;
 };
 
+function getRoll(sides) {
+    return Math.floor(Math.random() * sides) + 1;
+}
+
 window.autoCalcHP = (force = false) => {
     const char = characters.find(c => c.id === activeCharId);
     if (!char) return;
@@ -411,7 +415,18 @@ window.routeTo = (page) => {
 };
 
 // --- LEVEL UP WIZARD & MILESTONE ENGINE ---
-let wizardSelectedHpGain = 0;
+let wizardState = {
+    selectedVocationKey: null,
+    hpGainMethod: null,
+    hpGainValue: 0,
+    asiChoice: 'none', // 'single', 'double', 'feat', 'none'
+    asiStats: {},
+    growthCategory: '',
+    growthNote: '',
+    devCategory: '',
+    devNote: '',
+    milestoneReason: ''
+};
 
 window.grantPartyMilestone = async () => {
     if (activeRole !== 'dm') return;
@@ -445,7 +460,19 @@ window.openLevelUpWizard = () => {
     const char = characters.find(c => c.id === activeCharId);
     if (!char || !char.levelUpPending) return;
 
-    wizardSelectedHpGain = 0;
+    wizardState = {
+        selectedVocationKey: null,
+        hpGainMethod: null,
+        hpGainValue: 0,
+        asiChoice: 'none',
+        asiStats: {},
+        growthCategory: 'Hardiness',
+        growthNote: '',
+        devCategory: 'Strengthened',
+        devNote: '',
+        milestoneReason: ''
+    };
+
     document.getElementById('hp-gain-result').classList.add('hidden');
     document.getElementById('btn-confirm-lvlup').disabled = true;
     document.getElementById('btn-confirm-lvlup').classList.add('opacity-50', 'cursor-not-allowed');
@@ -467,6 +494,7 @@ window.openLevelUpWizard = () => {
                 vocSelect.innerHTML += `<option value="${key}">[New Multiclass] ${v.name} (Req: ${v.multiclassReq})</option>`;
             }
         }
+        wizardState.selectedVocationKey = vocSelect.value;
     }
 
     if (vocSelect) window.previewVocationLevel(vocSelect.value);
@@ -474,6 +502,7 @@ window.openLevelUpWizard = () => {
 };
 
 window.previewVocationLevel = (vKey) => {
+    wizardState.selectedVocationKey = vKey;
     const char = characters.find(c => c.id === activeCharId);
     if (!char || !vKey) return;
 
@@ -493,16 +522,17 @@ window.previewVocationLevel = (vKey) => {
 };
 
 window.wizardRollHP = () => {
-    const vocKey = document.getElementById('lvl-wizard-vocation').value;
+    const vocKey = wizardState.selectedVocationKey || document.getElementById('lvl-wizard-vocation').value;
     const vData = VOCATION_CONFIG[vocKey];
     const char = characters.find(c => c.id === activeCharId);
     const conMod = Math.floor(((parseInt(char.con || 10) - 10) / 2));
     
     const roll = Math.floor(Math.random() * vData.hitDie) + 1;
-    wizardSelectedHpGain = Math.max(1, roll + conMod);
+    wizardState.hpGainMethod = 'roll';
+    wizardState.hpGainValue = Math.max(1, roll + conMod);
 
     const res = document.getElementById('hp-gain-result');
-    res.innerText = `Rolled ${roll} + ${conMod} (CON) = +${wizardSelectedHpGain} Max HP`;
+    res.innerText = `Rolled ${roll} + ${conMod} (CON) = +${wizardState.hpGainValue} Max HP`;
     res.classList.remove('hidden');
 
     document.getElementById('btn-confirm-lvlup').disabled = false;
@@ -510,16 +540,17 @@ window.wizardRollHP = () => {
 };
 
 window.wizardAverageHP = () => {
-    const vocKey = document.getElementById('lvl-wizard-vocation').value;
+    const vocKey = wizardState.selectedVocationKey || document.getElementById('lvl-wizard-vocation').value;
     const vData = VOCATION_CONFIG[vocKey];
     const char = characters.find(c => c.id === activeCharId);
     const conMod = Math.floor(((parseInt(char.con || 10) - 10) / 2));
 
     const avg = Math.floor(vData.hitDie / 2) + 1;
-    wizardSelectedHpGain = Math.max(1, avg + conMod);
+    wizardState.hpGainMethod = 'average';
+    wizardState.hpGainValue = Math.max(1, avg + conMod);
 
     const res = document.getElementById('hp-gain-result');
-    res.innerText = `Average ${avg} + ${conMod} (CON) = +${wizardSelectedHpGain} Max HP`;
+    res.innerText = `Average ${avg} + ${conMod} (CON) = +${wizardState.hpGainValue} Max HP`;
     res.classList.remove('hidden');
 
     document.getElementById('btn-confirm-lvlup').disabled = false;
@@ -528,9 +559,9 @@ window.wizardAverageHP = () => {
 
 window.confirmLevelUp = async () => {
     const char = characters.find(c => c.id === activeCharId);
-    if (!char || !wizardSelectedHpGain) return;
+    if (!char || !wizardState.hpGainValue) return;
 
-    const vocKey = document.getElementById('lvl-wizard-vocation').value;
+    const vocKey = wizardState.selectedVocationKey || document.getElementById('lvl-wizard-vocation').value;
     const vData = VOCATION_CONFIG[vocKey];
 
     let classes = char.classes || [];
@@ -539,18 +570,56 @@ window.confirmLevelUp = async () => {
     }
 
     const existingIdx = classes.findIndex(c => window.getVocationKey(c.name) === vocKey);
+    const oldVocationLvl = existingIdx !== -1 ? classes[existingIdx].level : 0;
+    const newVocationLvl = oldVocationLvl + 1;
+
     if (existingIdx !== -1) {
-        classes[existingIdx].level += 1;
+        classes[existingIdx].level = newVocationLvl;
     } else {
         classes.push({ name: vData.name, level: 1 });
     }
 
-    const totalCharLvl = (parseInt(char.level) || 1) + 1;
+    const oldTotalLvl = parseInt(char.level) || 1;
+    const totalCharLvl = oldTotalLvl + 1;
     const classStr = classes.map(c => `${c.name} ${c.level}`).join(' / ');
-    const newProfBonus = window.getProficiencyBonus(totalCharLvl);
-    const newMaxHp = (parseInt(char.hpMax) || 10) + wizardSelectedHpGain;
 
+    const oldProfBonus = window.getProficiencyBonus(oldTotalLvl);
+    const newProfBonus = window.getProficiencyBonus(totalCharLvl);
+    const conMod = Math.floor(((parseInt(char.con || 10) - 10) / 2));
+
+    const newMaxHp = (parseInt(char.hpMax) || 10) + wizardState.hpGainValue;
     const pendingCount = Math.max(0, (char.pendingLevelsCount || 1) - 1);
+
+    // Read narrative Growth and Development inputs if available in DOM
+    const growthCat = document.getElementById('lvl-growth-cat')?.value || 'Hardiness';
+    const growthNote = document.getElementById('lvl-growth-note')?.value.trim() || '';
+    const devCat = document.getElementById('lvl-dev-cat')?.value || 'Strengthened';
+    const devNote = document.getElementById('lvl-dev-note')?.value.trim() || '';
+    const milestoneReason = document.getElementById('lvl-milestone-reason')?.value.trim() || 'Milestone Reached';
+
+    const historyEntry = {
+        characterLevel: totalCharLvl,
+        vocationGained: vData.name,
+        vocationLevel: newVocationLvl,
+        previousClasses: char.class || 'Unassigned',
+        newClasses: classStr,
+        hitDieUsed: `d${vData.hitDie}`,
+        hpMethod: wizardState.hpGainMethod,
+        hpGained: wizardState.hpGainValue,
+        conModApplied: conMod,
+        oldProfBonus,
+        newProfBonus,
+        featuresGained: vData.progression[newVocationLvl] || ['General Vocation Advancement'],
+        growthCategory: growthCat,
+        growthNote,
+        devCategory: devCat,
+        devNote,
+        milestoneReason,
+        timestamp: Date.now()
+    };
+
+    const existingHistory = char.levelHistory || [];
+    const updatedHistory = [historyEntry, ...existingHistory];
 
     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'characters', activeCharId), {
         level: totalCharLvl,
@@ -558,10 +627,11 @@ window.confirmLevelUp = async () => {
         class: classStr,
         profBonus: newProfBonus,
         hpMax: newMaxHp,
-        hpCurrent: (parseInt(char.hpCurrent) || 0) + wizardSelectedHpGain,
+        hpCurrent: (parseInt(char.hpCurrent) || 0) + wizardState.hpGainValue,
         hdCurrent: (parseInt(char.hdCurrent) || 0) + 1,
         levelUpPending: pendingCount > 0,
-        pendingLevelsCount: pendingCount
+        pendingLevelsCount: pendingCount,
+        levelHistory: updatedHistory
     });
 
     document.getElementById('level-up-modal')?.classList.add('hidden');
@@ -1340,10 +1410,6 @@ window.openScoreGenModal = () => {
     document.getElementById('gen-apply-area')?.classList.add('hidden'); 
     document.getElementById('gen-controls')?.classList.remove('hidden'); 
 };
-
-function getRoll(sides) {
-    return Math.floor(Math.random() * sides) + 1;
-}
 
 window.generateScores = (method, isReroll = false) => { 
     if (method === 'standard') lastGeneratedScores = [15, 14, 13, 12, 10, 8]; 
