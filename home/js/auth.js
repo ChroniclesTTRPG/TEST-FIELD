@@ -29,9 +29,7 @@ window.logoutAuth = () => {
     signOut(auth).then(() => window.location.reload());
 };
 
-window.isAuthenticating = false;
-
-// Direct root-relative path prevents /home/home/ duplication
+// Redirect function called explicitly upon successful authentication action
 window.proceedToCampaigns = async (user) => {
     const targetUrl = "/TEST-FIELD/nexus/campaigns.html";
     try {
@@ -57,15 +55,11 @@ window.proceedToCampaigns = async (user) => {
 };
 
 // --- AUTHENTICATION STATE OBSERVER ---
+// Simply reveals the login screen on load without auto-redirecting existing sessions
 onAuthStateChanged(auth, async (user) => {
-    if (user) {
-        if (window.isAuthenticating) return;
-        await window.proceedToCampaigns(user);
-    } else {
-        document.getElementById('initial-loading').classList.add('hidden');
-        document.getElementById('intro-view').classList.remove('hidden');
-        document.getElementById('intro-view').classList.add('fade-in');
-    }
+    document.getElementById('initial-loading').classList.add('hidden');
+    document.getElementById('intro-view').classList.remove('hidden');
+    document.getElementById('intro-view').classList.add('fade-in');
 });
 
 // Handle DM Secret visibility
@@ -75,13 +69,12 @@ document.querySelectorAll('input[name="auth-role"]').forEach(radio => {
     });
 });
 
-// Handle Guest Sign-In
+// Handle Guest Sign-In (Redirects after clicking)
 document.getElementById('btn-guest-signin').addEventListener('click', async () => {
     const submitBtn = document.getElementById('btn-guest-signin');
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = "<i class='fa-solid fa-spinner fa-spin mr-2'></i>Opening Gates...";
     submitBtn.disabled = true;
-    window.isAuthenticating = true;
 
     try {
         const cred = await signInAnonymously(auth);
@@ -91,11 +84,10 @@ document.getElementById('btn-guest-signin').addEventListener('click', async () =
         window.showModal("Error", "Failed to enter as guest. " + error.message);
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
-        window.isAuthenticating = false;
     }
 });
 
-// Handle Login/Register Submission
+// Handle Login/Register Submission (Redirects after submitting form)
 document.getElementById('auth-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('auth-email').value.trim();
@@ -106,7 +98,6 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
     const submitBtn = document.getElementById('auth-submit-btn');
     submitBtn.innerText = "Entering the Realm...";
     submitBtn.disabled = true;
-    window.isAuthenticating = true;
 
     try {
         let user;
@@ -117,7 +108,6 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
             if (role === 'dm' && !dmSecret) {
                 submitBtn.innerText = "Forge Account";
                 submitBtn.disabled = false;
-                window.isAuthenticating = false;
                 return window.showModal("Hold!", "A Dungeon Master must set a Sanctum password.");
             }
 
@@ -136,11 +126,11 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
             user = userCredential.user;
         }
         
+        // Redirect user to the Nexus ONLY upon explicit form submission
         await window.proceedToCampaigns(user);
         
     } catch (error) {
         console.error("Auth Error:", error);
-        window.isAuthenticating = false;
         submitBtn.disabled = false;
         submitBtn.innerText = window.currentAuthMode === 'login' ? "Enter the Realm" : "Forge Account";
         
