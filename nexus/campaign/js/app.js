@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/fireba
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, addDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
-// --- FIREBASE INITIALIZATION (MOVED TO TOP SCOPE TO FIX INITIALIZATION ORDER) ---
+// --- FIREBASE INITIALIZATION & TOP-LEVEL STATE SCOPING ---
 const firebaseConfig = {
     apiKey: "AIzaSyCKRN5dfi4og69_D8ZAvV1BQfwCK_f2uis",
     authDomain: "dndcampaigns-f3d48.firebaseapp.com",
@@ -15,6 +15,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+// Top-level Application State
+let characters = [], parties = [], currentUser = null, activeCharId = null, activeRole = 'player', rollMode = 'normal';
+let autoSaveTimer = null, lastGeneratedScores = [], sessionRerollUsed = false;
+let activeManagePartyId = null, activeMoveLvl = null, editingMoveIndex = null;
+let campaignSettings = { terms: {} };
 
 // --- AEONFALL DATA-DRIVEN VOCATIONS DATA ENGINE ---
 const VOCATION_CONFIG = {
@@ -192,6 +198,193 @@ window.getProficiencyBonus = (charLvl) => {
     return l >= 17 ? 6 : l >= 13 ? 5 : l >= 9 ? 4 : l >= 5 ? 3 : 2;
 };
 
+window.autoCalcHP = (force = false) => {
+    const char = characters.find(c => c.id === activeCharId);
+    if (!char) return;
+    
+    const conMod = Math.floor(((parseInt(document.querySelector('[data-key="con"]')?.value) || 10) - 10) / 2);
+    let totalHp = 0;
+    let hdParts = [];
+    
+    let classes = char.classes || [];
+    if (classes.length === 0) {
+        classes = [{name: document.getElementById('class-input')?.value || '', level: parseInt(document.querySelector('[data-key="level"]')?.value) || 1}];
+    }
+    
+    classes.forEach((cls, idx) => {
+        const hd = window.getHitDie(cls.name);
+        const lvl = parseInt(cls.level) || 1;
+        if (lvl > 0) hdParts.push(`${lvl}d${hd}`);
+        
+        for (let i = 0; i < lvl; i++) {
+            if (idx === 0 && i === 0) {
+                totalHp += (hd + conMod); 
+            } else {
+                totalHp += (Math.floor(hd / 2) + 1 + conMod); 
+            }
+        }
+    });
+    
+    const hdString = hdParts.join(' + ') || '1d8';
+    const hdInput = document.querySelector('[data-key="hd"]');
+    
+    if (hdInput && (force || hdInput.value === '1d8' || hdInput.value === '1d10' || hdInput.value === '')) {
+        hdInput.value = hdString;
+    }
+
+    const maxHpInput = document.querySelector('[data-key="hpMax"]');
+    if (maxHpInput) {
+        if (force || parseInt(maxHpInput.value) === 10) {
+            maxHpInput.value = totalHp;
+            const curHpInput = document.querySelector('[data-key="hpCurrent"]');
+            if (curHpInput && (force || parseInt(curHpInput.value) === 10)) {
+                curHpInput.value = totalHp;
+            }
+        }
+    }
+    
+    if (force) {
+        window.saveCurrentCharacter();
+        window.showToast(`Max HP set to ${totalHp} (Average + CON)`);
+    }
+};
+
+window.updateClassSpecifics = () => {
+    const inputVal = (document.getElementById('class-input')?.value || '').toLowerCase();
+    let matchedClasses = [];
+    const aliases = window.getVocationAliases();
+    for (const k in VOCATION_DATA) {
+        if (inputVal.includes(aliases[k])) {
+            matchedClasses.push(k);
+        }
+    }
+
+    const matchKey = matchedClasses.sort().join(',');
+    if (matchKey === window.currentRenderedClass) return;
+    window.currentRenderedClass = matchKey;
+
+    const tCard = document.getElementById('dynamic-class-trackers-card');
+    const tContent = document.getElementById('dynamic-class-trackers-content');
+    const fSection = document.getElementById('dynamic-class-features-section');
+    const fContent = document.getElementById('dynamic-class-features-content');
+    const eSection = document.getElementById('dynamic-class-equip-section');
+    const eContent = document.getElementById('dynamic-class-equip-content');
+
+    if (matchedClasses.length === 0) {
+        if(tCard) tCard.classList.add('hidden');
+        if(fSection) fSection.classList.add('hidden');
+        if(eSection) eSection.classList.add('hidden');
+        return;
+    }
+
+    let allTrackers = [];
+    let allFeatures = [];
+    let allEquip = [];
+
+    matchedClasses.forEach(matchedClass => {
+        const data = VOCATION_DATA[matchedClass];
+        allTrackers = [...new Set([...allTrackers, ...data.trackers])];
+        allFeatures = [...new Set([...allFeatures, ...data.features])];
+        allEquip = [...new Set([...allEquip, ...data.equip])];
+    });
+
+    if (tCard && tContent) {
+        if (allTrackers.length > 0) {
+            tCard.classList.remove('hidden');
+            document.getElementById('dynamic-class-title').innerText = 'VOCATION TRACKERS';
+            tContent.innerHTML = allTrackers.map(t => `
+                <div class="flex justify-between items-center mb-2">
+                    <label class="tiny-label mt-0">${t}</label>
+                    <input type="text" data-key="tracker_${t.replace(/[^a-zA-Z0-9]/g,'_')}" class="w-16 bg-transparent border-b border-dashed border-gray-400 text-center font-bold text-ink font-heading text-lg" placeholder="0">
+                </div>
+            `).join('');
+        } else {
+            tCard.classList.add('hidden');
+        }
+    }
+
+    if (fSection && fContent) {
+        if (allFeatures.length > 0) {
+            fSection.classList.remove('hidden');
+            fContent.innerHTML = allFeatures.map(f => `
+                <div class="trait-section">
+                    <label class="trait-title">${f}</label>
+                    <textarea data-key="feature_${f.replace(/[^a-zA-Z0-9]/g,'_')}" class="trait-input-area font-serif" placeholder="+ Add details..."></textarea>
+                </div>
+            `).join('');
+        } else {
+            fSection.classList.add('hidden');
+        }
+    }
+
+    if (eSection && eContent) {
+        if (allEquip.length > 0) {
+            eSection.classList.remove('hidden');
+            eContent.innerHTML = allEquip.map(e => `
+                <div>
+                    <label class="prof-label mb-1">${e}</label>
+                    <textarea data-key="equip_${e.replace(/[^a-zA-Z0-9]/g,'_')}" class="w-full bg-[rgba(255,255,255,0.4)] border border-[rgba(139,90,43,0.3)] p-2 rounded text-[12px] h-16 font-serif" placeholder="List items..."></textarea>
+                </div>
+            `).join('');
+        } else {
+            eSection.classList.add('hidden');
+        }
+    }
+
+    if (activeCharId && characters) {
+        const char = characters.find(c => c.id === activeCharId);
+        if (char) {
+            const isOwner = (currentUser && char.owner === currentUser.username) || char.owner === 'DM';
+            const isDM = activeRole === 'dm';
+            const canEdit = isOwner || isDM;
+
+            document.querySelectorAll('#dynamic-class-trackers-card [data-key], #dynamic-class-features-section [data-key], #dynamic-class-equip-section [data-key]').forEach(el => {
+                const rawVal = char[el.dataset.key]; 
+                el.value = (rawVal !== undefined && rawVal !== null) ? rawVal : "";
+                el.readOnly = !canEdit;
+                el.disabled = !canEdit;
+            });
+        }
+    }
+};
+
+window.showToast = (m) => { 
+    const t = document.getElementById('toast'); 
+    if(t){ t.textContent=m; t.style.opacity=1; setTimeout(()=>t.style.opacity=0, 4000); } 
+};
+
+const urlParams = new URLSearchParams(window.location.search);
+let appId = urlParams.get('id') || urlParams.get('campaignId');
+
+const isPreviewEnv = window.location.href.startsWith('blob:') || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+if (!appId) {
+    if (isPreviewEnv) {
+        appId = "demo_campaign";
+    } else {
+        try {
+            window.location.href = "../campaigns.html";
+        } catch(e) {}
+    }
+}
+
+window.routeTo = (page) => {
+    try {
+        let targetUrl = page;
+        if (page === 'campaigns.html') {
+            targetUrl = '../campaigns.html';
+        }
+        if (appId && appId !== "demo_campaign") {
+            if (page !== 'campaigns.html') {
+                targetUrl += `?id=${appId}`;
+            }
+        }
+        window.location.href = targetUrl;
+    } catch (e) {
+        window.showToast("Navigation blocked in preview.");
+    }
+};
+
 // --- LEVEL UP WIZARD & MILESTONE ENGINE ---
 let wizardSelectedHpGain = 0;
 
@@ -350,7 +543,151 @@ window.confirmLevelUp = async () => {
     window.showToast(`Congratulations! Level Up Complete: Character Level ${totalCharLvl}!`);
 };
 
-window.currentRenderedClass = null;
+// --- EXHAUSTION CONTROLS ---
+window.adjustExhaustion = async (amount, reset = false) => {
+    const char = characters.find(c => c.id === activeCharId);
+    if (!char) return;
+
+    let currentLvl = parseInt(char.exhaustion) || 0;
+    let newLvl = reset ? 0 : Math.max(0, Math.min(6, currentLvl + amount));
+
+    const hiddenInput = document.querySelector('[data-key="exhaustion"]');
+    if (hiddenInput) hiddenInput.value = newLvl;
+
+    const updates = { exhaustion: newLvl };
+
+    if (newLvl === 6) {
+        updates.status = 'dead';
+        updates.hpCurrent = 0;
+        window.showToast("Exhaustion Level 6 reached: The character has perished.");
+    }
+
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'characters', activeCharId), updates);
+    window.renderExhaustionUI(newLvl);
+};
+
+window.renderExhaustionUI = (lvl) => {
+    const display = document.getElementById('exhaustion-level-display');
+    if (display) display.innerText = lvl;
+
+    for (let i = 1; i <= 6; i++) {
+        const row = document.getElementById(`ex-lvl-${i}`);
+        if (!row) continue;
+
+        const statusTag = row.querySelector('.ex-status');
+
+        if (lvl >= i) {
+            row.className = i === 6 
+                ? "p-1.5 rounded border border-red-900 bg-blood text-parchment flex items-center justify-between shadow-md"
+                : "p-1.5 rounded border border-blood bg-blood/10 text-blood flex items-center justify-between font-black";
+            if (statusTag) {
+                statusTag.innerText = "ACTIVE";
+                statusTag.className = "ex-status font-black text-[9px] text-blood";
+                if (i === 6) statusTag.className = "ex-status font-black text-[9px] text-parchment";
+            }
+        } else {
+            row.className = "p-1.5 rounded border border-gray-400/30 text-gray-500 flex items-center justify-between";
+            if (statusTag) {
+                statusTag.innerText = "INACTIVE";
+                statusTag.className = "ex-status font-black text-[9px] text-gray-400";
+            }
+        }
+    }
+};
+
+// --- STRESS THRESHOLD & DM-ONLY TRAUMA LOGIC ---
+window.checkStressThreshold = (val) => {
+    const curStress = parseInt(val) || 0;
+    const thresholdInput = document.querySelector('[data-key="stressThreshold"]');
+    const threshold = parseInt(thresholdInput?.value) || 10;
+    
+    const alertBanner = document.getElementById('stress-threshold-alert');
+
+    if (curStress >= threshold) {
+        if (alertBanner) alertBanner.classList.remove('hidden');
+        window.showToast(`⚡ Stress threshold (${threshold}) reached! Awaiting DM/Admin to assign Trauma or Scar.`);
+    } else {
+        if (alertBanner) alertBanner.classList.add('hidden');
+    }
+};
+
+window.openDmTraumaModal = () => {
+    if (activeRole !== 'dm') {
+        window.showToast("Only the Dungeon Master or Admin can assign Scars & Trauma.");
+        return;
+    }
+    document.getElementById('dt-what').value = '';
+    document.getElementById('dt-why').value = '';
+    document.getElementById('dt-how').value = '';
+    document.getElementById('dt-benefit').value = '';
+    document.getElementById('dt-complication').value = '';
+    document.getElementById('dm-trauma-modal')?.classList.remove('hidden');
+};
+
+window.saveDmTrauma = async () => {
+    const char = characters.find(c => c.id === activeCharId);
+    if (!char) return;
+
+    const what = document.getElementById('dt-what').value.trim();
+    const why = document.getElementById('dt-why').value.trim();
+    const how = document.getElementById('dt-how').value.trim();
+    const benefit = document.getElementById('dt-benefit').value.trim();
+    const complication = document.getElementById('dt-complication').value.trim();
+
+    if (!what) return window.showToast("Please write what happened.");
+
+    const existingRecords = char.traumaRecords || [];
+    const newRecord = {
+        what,
+        why,
+        how,
+        benefit,
+        complication,
+        assignedBy: currentUser?.username || 'DM',
+        timestamp: Date.now()
+    };
+
+    const updatedRecords = [newRecord, ...existingRecords];
+
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'characters', activeCharId), {
+        traumaRecords: updatedRecords,
+        currentStress: 0
+    });
+
+    document.getElementById('dm-trauma-modal')?.classList.add('hidden');
+    document.getElementById('stress-threshold-alert')?.classList.add('hidden');
+    window.showToast("Trauma/Scar assigned! Stress reset to 0.");
+};
+
+window.renderTraumaListUI = (records = []) => {
+    const container = document.getElementById('trauma-records-list');
+    const countBadge = document.getElementById('trauma-count-badge');
+
+    if (countBadge) {
+        countBadge.innerText = `${records.length} ${records.length === 1 ? 'Record' : 'Records'}`;
+    }
+
+    if (!container) return;
+
+    if (records.length === 0) {
+        container.innerHTML = `<p class="text-xs text-gray-500 italic text-center py-2">No scars or traumas recorded yet.</p>`;
+        return;
+    }
+
+    container.innerHTML = records.map((r, i) => `
+        <div class="bg-[rgba(255,255,255,0.4)] border border-[rgba(139,90,43,0.3)] p-3 rounded space-y-2 text-xs font-serif shadow-sm">
+            <div class="flex justify-between items-start border-b border-[rgba(139,90,43,0.2)] pb-1">
+                <span class="font-heading font-black text-blood uppercase text-[10px]">Record #${records.length - i}</span>
+                <span class="text-[9px] text-gray-500 italic">Assigned by ${r.assignedBy || 'DM'}</span>
+            </div>
+            <div><strong class="text-blood block tiny-label">What Happened?</strong> <span class="italic text-ink">${r.what}</span></div>
+            ${r.why ? `<div><strong class="text-555 block tiny-label">Why / Cause:</strong> <span class="italic text-ink">${r.why}</span></div>` : ''}
+            ${r.how ? `<div><strong class="text-555 block tiny-label">How / Trigger:</strong> <span class="italic text-ink">${r.how}</span></div>` : ''}
+            ${r.benefit ? `<div><strong class="text-green-900 block tiny-label">Situational Benefit:</strong> <span class="italic text-green-900 font-semibold">${r.benefit}</span></div>` : ''}
+            ${r.complication ? `<div><strong class="text-blood block tiny-label">Complication / Narrative Hook:</strong> <span class="italic text-blood font-semibold">${r.complication}</span></div>` : ''}
+        </div>
+    `).join('');
+};
 
 const DEFAULT_MODULES = {
     mod_skills: true, mod_saves: true, mod_insp: true, mod_death: true,
