@@ -5,7 +5,9 @@
     <meta http-equiv="refresh" content="0; url=/TEST-FIELD/home/">
     <title>Chronicles of the Realm</title>
     <script>
-        window.location.replace("/TEST-FIELD/home/");
+        if (window.location.pathname === "/TEST-FIELD/" || window.location.pathname === "/TEST-FIELD/index.html") {
+            window.location.replace("/TEST-FIELD/home/");
+        }
     </script>
 </head>
 <body>
