@@ -343,8 +343,23 @@ const COMA_COMPLICATIONS = [
 
 const getRoll = (sides) => Math.floor(Math.random() * sides) + 1;
 
+// --- STRESS THRESHOLD & TRAUMA AUTOMATION ---
+window.checkStressThreshold = (val) => {
+    const curStress = parseInt(val) || 0;
+    const thresholdInput = document.querySelector('[data-key="stressThreshold"]');
+    const threshold = parseInt(thresholdInput?.value) || 10;
+    const alertBanner = document.getElementById('stress-threshold-alert');
+
+    if (curStress >= threshold) {
+        if (alertBanner) alertBanner.classList.remove('hidden');
+        window.showToast(`⚠️ Stress threshold (${threshold}) reached! Roll a Scar & Trauma.`);
+    } else {
+        if (alertBanner) alertBanner.classList.add('hidden');
+    }
+};
+
 // --- SCARS & TRAUMA FRAMEWORK GENERATOR ---
-window.generateScarsAndTrauma = () => {
+window.generateScarsAndTrauma = (isThresholdTrigger = false) => {
     const getD100 = () => Math.floor(Math.random() * 100) + 1;
     const getD20 = () => Math.floor(Math.random() * 20) + 1;
 
@@ -391,7 +406,6 @@ window.generateScarsAndTrauma = () => {
     const r12 = getD20();
     const eff = r12 <= 10 ? "Narrative Only" : r12 <= 14 ? "Roleplay Trait" : r12 <= 17 ? "Situational Benefit" : r12 <= 19 ? "Situational Complication" : "Benefit & Complication";
 
-    // Populate Fields safely
     const setKeyVal = (key, val) => {
         const el = document.querySelector(`[data-key="${key}"]`);
         if (el) el.value = val;
@@ -406,6 +420,12 @@ window.generateScarsAndTrauma = () => {
     setKeyVal("traumaResponse", `${resp} / ${cope}`);
     setKeyVal("traumaStrength", `Mechanical Effect: ${eff}`);
     setKeyVal("traumaComplication", `DM Narrative Hook: Triggered by ${traumaTrig}`);
+
+    // If triggered by reaching stress threshold, reset stress back to 0
+    if (isThresholdTrigger) {
+        setKeyVal("currentStress", 0);
+        document.getElementById('stress-threshold-alert')?.classList.add('hidden');
+    }
 
     window.saveCurrentCharacter();
     window.showToast("Scars & Trauma Framework Generated!");
