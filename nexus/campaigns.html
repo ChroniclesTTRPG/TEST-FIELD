@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chronicles Nexus</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { 'parchment': '#f1e5c5', 'ink': '#2c1e16', 'blood': '#7a1b1b', 'gold': '#c5a059', 'wood': '#1a110b' }, fontFamily: { 'serif': ['Lora', 'serif'], 'heading': ['Cinzel', 'serif'] } } }
+        }
+    </script>
+    
+    <!-- External CSS -->
+    <link rel="stylesheet" href="css/campaigns.css">
+</head>
+<body class="min-h-screen flex flex-col items-center">
+
+    <div id="banned-banner" class="hidden w-full bg-red-900 text-white text-center py-2 text-xs font-black uppercase tracking-widest font-heading border-b border-red-500 shadow-lg relative z-[1000]">
+        <i class="fa-solid fa-gavel mr-2"></i> You have been banished from the Tavern and joining new Realms.
+    </div>
+    
+    <div id="muted-banner" class="hidden w-full bg-orange-900 text-white text-center py-2 text-xs font-black uppercase tracking-widest font-heading border-b border-orange-500 shadow-lg relative z-[1000]">
+        <i class="fa-solid fa-volume-xmark mr-2"></i> You have been silenced by the Archives. You cannot speak in chat.
+    </div>
+
+    <div id="toast" class="toast">Message</div>
+
+    <!-- Initial Loading State with Global Error Boundary -->
+    <div id="initial-loading" class="flex flex-col items-center justify-center h-screen fade-in w-full text-center z-50 bg-wood">
+        <i class="fa-solid fa-compass fa-spin text-6xl text-gray-500 mb-6"></i>
+        <h2 class="font-heading text-2xl text-parchment animate-pulse tracking-widest">Charting the Realms...</h2>
+    </div>
+
+    <div id="dashboard-screen" class="min-h-screen p-4 md:p-8 hidden w-full">
+        <div class="max-w-6xl mx-auto">
+            <!-- HEADER -->
+            <header class="flex flex-col md:flex-row justify-between items-center mb-10 border-b border-gray-700 pb-6 gap-6 relative">
+                <div class="absolute -bottom-1.5 left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-gray-700 to-transparent opacity-50"></div>
+                
+                <div class="text-center md:text-left w-full md:w-auto">
+                    <h1 class="text-4xl md:text-5xl text-gray-400 font-bold mb-1 font-heading tracking-tight leading-none drop-shadow-md">Chronicles</h1>
+                    <div class="flex items-center justify-center md:justify-start gap-3 mt-2">
+                        <p class="text-gray-500 text-xs uppercase tracking-[0.2em] font-bold font-heading">Campaign Nexus</p>
+                        <div class="bg-black bg-opacity-60 border border-gray-700 px-3 py-1 rounded flex items-center gap-2 shadow-inner">
+                            <span id="user-role-badge" class="bg-gray-600 text-white px-2 py-0.5 rounded text-[10px] uppercase tracking-widest font-heading font-black shadow-md">...</span>
+                            <span id="user-display-name" class="text-[12px] font-black text-gray-300 uppercase tracking-widest font-heading">Traveler</span>
+                            <button onclick="window.openUsernameModal()" class="text-gray-500 hover:text-gold transition-colors ml-1" title="Change Display Name">
+                                <i class="fa-solid fa-pen text-[10px]"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-4 w-full md:w-auto items-center flex-wrap justify-center">
+                    <!-- ADMIN TERMINAL TOGGLE -->
+                    <button id="btn-admin-terminal" onclick="window.toggleAdminMode()" class="hidden bg-red-900 text-white hover:bg-red-700 px-5 py-2 text-xs rounded shadow-lg border border-red-500 font-heading font-black tracking-widest uppercase transition-colors"><i class="fa-solid fa-triangle-exclamation mr-2"></i> Owner Override</button>
+
+                    <!-- CODEX PACKS (ALL ROLES) -->
+                    <button onclick="window.openPacksModal()" class="fantasy-btn-alt px-5 py-2 text-xs rounded shadow-lg"><i class="fa-solid fa-book-journal-whills mr-2"></i> Codex Packs</button>
+                    
+                    <!-- JOIN BY CODE (PLAYER & ADMIN) -->
+                    <div id="player-actions" class="flex items-center bg-black bg-opacity-50 border border-gray-700 rounded overflow-hidden hidden">
+                        <input type="text" id="invite-code-input" class="bg-transparent border-none text-gray-300 px-4 py-2 text-sm font-heading focus:outline-none w-40" placeholder="Invite Code...">
+                        <button onclick="window.joinByCode()" class="bg-gray-800 hover:bg-gray-700 text-gold px-4 py-2 text-xs font-bold uppercase tracking-widest font-heading transition-colors border-l border-gray-700">Join</button>
+                    </div>
+                    <!-- CREATE CAMPAIGN (DM ONLY) -->
+                    <button id="btn-create-campaign" onclick="document.getElementById('create-campaign-modal').classList.remove('hidden')" class="fantasy-btn px-6 py-2 rounded text-xs hidden">
+                        <i class="fa-solid fa-plus mr-2"></i>New Realm
+                    </button>
+                    <!-- LOGOUT -->
+                    <button onclick="window.logout()" class="text-[10px] font-black text-gray-500 hover:text-red-500 uppercase tracking-widest transition-colors font-heading ml-2 border border-gray-700 px-3 py-2 rounded bg-black bg-opacity-40"><i class="fa-solid fa-power-off mr-1"></i> Logout</button>
+                </div>
+            </header>
+
+            <!-- MY ADVENTURES -->
+            <div class="mb-10">
+                <h2 id="grid-title-1" class="text-xl font-heading text-gold mb-4 border-b border-gray-800 pb-2">My Adventures</h2>
+                <div id="my-adventures-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Joined campaigns populate here -->
+                </div>
+            </div>
+
+            <!-- PUBLIC REALMS -->
+            <div class="mb-10">
+                <h2 id="grid-title-2" class="text-xl font-heading text-gray-500 mb-4 border-b border-gray-800 pb-2">Public Realms</h2>
+                <div id="public-realms-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-90">
+                    <!-- Public campaigns populate here -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- CHAT TOGGLE BUTTON -->
+    <div id="chat-toggle-btn" class="chat-btn-toggle hidden" onclick="window.toggleChatPanel()">
+        <i class="fa-solid fa-comments"></i>
+        <div id="global-unread-badge" class="unread-badge hidden">!</div>
+    </div>
+
+    <!-- CHAT PANEL -->
+    <div id="global-chat-panel" class="chat-panel">
+        <div class="flex items-center justify-between p-4 border-b border-gold bg-black/40">
+            <h2 class="font-heading text-lg font-black text-gold uppercase tracking-widest"><i class="fa-solid fa-tower-observation mr-2"></i> Communications</h2>
+            <div class="flex gap-4">
+                <button onclick="window.openFriendsModal()" class="text-gray-500 hover:text-gold transition-colors relative" title="Traveler Ledger (Friends)">
+                    <i class="fa-solid fa-user-group"></i>
+                    <span id="global-friends-badge" class="absolute -top-2 -right-2 bg-blood text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center hidden font-heading">0</span>
+                </button>
+                <button onclick="window.openChatSettings()" class="text-gray-500 hover:text-gold transition-colors" title="Chat Settings"><i class="fa-solid fa-gear"></i></button>
+                <button onclick="window.toggleChatPanel()" class="text-gray-400 hover:text-white transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+        </div>
+        
+        <div class="flex border-b border-gray-700">
+            <button id="chat-tab-global" onclick="window.switchChatTab('global')" class="chat-tab active">The Tavern</button>
+            <button id="chat-tab-dms" onclick="window.switchChatTab('dms')" class="chat-tab relative">Whispers <span id="dm-tab-badge" class="absolute top-2 right-2 w-2 h-2 bg-blood rounded-full hidden"></span></button>
+            <button id="chat-tab-reports" onclick="window.switchChatTab('reports')" class="chat-tab relative hidden !text-red-500 !border-red-900 hover:!bg-red-900/20">Reports <span id="report-tab-badge" class="absolute top-2 right-2 w-2 h-2 bg-blood rounded-full hidden"></span></button>
+        </div>
+
+        <!-- THE TAVERN (GLOBAL) -->
+        <div id="chat-view-global" class="flex flex-col h-full overflow-hidden">
+            <div class="p-2 border-b border-gray-700 bg-black/30 shrink-0 flex gap-2">
+                <div class="flex items-center gap-2 bg-black/50 border border-gray-600 rounded px-2 py-1 flex-grow">
+                    <i class="fa-solid fa-magnifying-glass text-gray-500 text-[10px]"></i>
+                    <input type="text" id="global-search-input" oninput="window.renderGlobalChat()" class="bg-transparent border-none text-[10px] text-gray-300 w-full focus:outline-none font-serif" placeholder="Search tavern messages...">
+                </div>
+                <button id="btn-clear-tavern" onclick="window.clearGlobalChat()" class="hidden bg-red-900 hover:bg-red-700 text-white px-2 py-1 rounded border border-red-500 transition-colors shadow-lg" title="Wipe Tavern Chat"><i class="fa-solid fa-broom"></i></button>
+            </div>
+            <div id="global-chat-messages" class="flex-grow overflow-y-auto p-4 scrollbar-hide space-y-4">
+                <!-- Global messages populate here -->
+            </div>
+            <div class="p-4 border-t border-gray-700 bg-black/40 shrink-0">
+                <div class="flex gap-2">
+                    <input type="text" id="global-chat-input" class="form-input text-xs w-full font-serif" placeholder="Speak to the realm...">
+                    <button onclick="window.sendGlobalMessage()" class="fantasy-btn px-4 py-2 rounded text-xs"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- WHISPERS (DIRECT MESSAGES) LIST -->
+        <div id="chat-view-dms" class="flex flex-col h-full overflow-hidden hidden">
+            <div class="p-3 border-b border-gray-700 bg-black/20 shrink-0">
+                <p class="text-[10px] text-gray-500 font-serif italic mb-2 text-center">Communicate privately. Find a user to begin.</p>
+                <div class="flex gap-2">
+                    <input type="text" id="dm-search-input" class="form-input text-xs w-full py-1.5" placeholder="Search your contacts...">
+                    <button id="btn-form-alliance" onclick="window.openCreateGroupModal()" class="bg-gray-800 hover:bg-gray-700 text-gold px-3 py-1.5 rounded text-xs border border-gray-600 w-full" title="Form Alliance"><i class="fa-solid fa-users mr-2"></i> Form Alliance</button>
+                </div>
+            </div>
+            <div id="dm-contacts-list" class="flex-grow overflow-y-auto scrollbar-hide">
+                <!-- DM Contacts populate here -->
+            </div>
+        </div>
+
+        <!-- ACTIVE WHISPER CONVERSATION -->
+        <div id="chat-view-active-dm" class="flex flex-col h-full overflow-hidden hidden">
+            <div class="flex items-center justify-between p-3 border-b border-gray-700 bg-black/40 shrink-0">
+                <button onclick="window.closeActiveDM()" class="text-gray-500 hover:text-gold transition-colors"><i class="fa-solid fa-arrow-left"></i></button>
+                <h3 id="active-dm-name" class="font-heading text-sm font-bold text-white uppercase tracking-widest truncate max-w-[180px]">User Name</h3>
+                <div class="flex gap-3" id="active-dm-tools">
+                    <!-- Dynamic Tools Go Here -->
+                </div>
+            </div>
+            <div class="p-2 border-b border-gray-700 bg-black/30 shrink-0">
+                <div class="flex items-center gap-2 bg-black/50 border border-gray-600 rounded px-2 py-1">
+                    <i class="fa-solid fa-magnifying-glass text-gray-500 text-[10px]"></i>
+                    <input type="text" id="dm-search-message-input" oninput="window.renderActiveDM()" class="bg-transparent border-none text-[10px] text-gray-300 w-full focus:outline-none font-serif" placeholder="Search this whisper...">
+                </div>
+            </div>
+            <div id="active-dm-messages" class="flex-grow overflow-y-auto p-4 scrollbar-hide space-y-4">
+                <!-- Private messages populate here -->
+            </div>
+            <div class="p-4 border-t border-gray-700 bg-black/40 shrink-0">
+                <div class="flex gap-2">
+                    <input type="text" id="active-dm-input" class="form-input text-xs w-full font-serif" placeholder="Whisper privately...">
+                    <button onclick="window.sendDirectMessage()" class="fantasy-btn px-4 py-2 rounded text-xs"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- REPORTS LIST (ADMIN ONLY) -->
+        <div id="chat-view-reports" class="flex flex-col h-full overflow-hidden hidden">
+            <div class="p-3 border-b border-red-900 bg-red-900/10 shrink-0">
+                <p class="text-[10px] text-red-500 font-serif italic mb-2 text-center">Admin Oversight: Review traveler reports.</p>
+            </div>
+            <div id="reports-list-container" class="flex-grow overflow-y-auto p-4 scrollbar-hide space-y-4">
+                <!-- Reports populate here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- UPDATE USERNAME MODAL -->
+    <div id="username-prompt-modal" class="modal-overlay hidden z-[900]">
+        <div class="parchment-bg rounded-lg max-w-sm w-full p-8 shadow-2xl border-2 border-blood text-center relative">
+            <button id="close-username-modal" onclick="document.getElementById('username-prompt-modal').classList.add('hidden')" class="absolute top-2 right-3 text-gray-500 hover:text-blood text-xl hidden"><i class="fa-solid fa-xmark"></i></button>
+            <h2 class="font-heading text-2xl font-bold text-blood mb-2">Declare Thyself!</h2>
+            <p id="username-modal-desc" class="text-sm font-serif text-ink mb-6 italic">The archives hold no record of your name, traveler. By what title shall the realm know you?</p>
+            
+            <div class="space-y-4 mb-6 text-left">
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-ink mb-1 font-heading">Display Name</label>
+                    <input type="text" id="missing-username-input" class="w-full bg-transparent border-b-2 border-gray-400 focus:border-blood text-ink py-2 text-lg font-serif outline-none placeholder-gray-500 text-center" placeholder="e.g. Gandalf, Elara...">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-ink mb-1 font-heading">Age Verification</label>
+                    <select id="missing-age-input" class="w-full bg-white/50 border border-gray-400 p-2 text-ink rounded outline-none font-serif text-sm">
+                        <option value="">Select age group...</option>
+                        <option value="under_17">16 and Under</option>
+                        <option value="17_plus">17+</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button onclick="window.setUsername()" class="fantasy-btn w-full py-3 rounded text-sm font-bold">Save Identity</button>
+        </div>
+    </div>
+
+    <!-- CHAT SETTINGS MODAL -->
+    <div id="chat-settings-modal" class="modal-overlay hidden z-[900]">
+        <div class="parchment-bg rounded-lg max-w-sm w-full p-6 shadow-2xl border-2 border-gold text-center relative">
+            <button onclick="document.getElementById('chat-settings-modal').classList.add('hidden')" class="absolute top-2 right-3 text-gray-500 hover:text-blood text-xl"><i class="fa-solid fa-xmark"></i></button>
+            <h2 class="font-heading text-xl font-bold text-ink mb-4 border-b border-gray-400 pb-2">Privacy Settings</h2>
+            
+            <div class="text-left space-y-4 mb-6">
+                <label class="flex items-center gap-3 cursor-pointer group">
+                    <input type="checkbox" id="setting-block-strangers" class="w-4 h-4 text-blood bg-white border-gray-300 rounded focus:ring-blood">
+                    <span class="text-sm font-heading font-bold text-ink group-hover:text-blood transition-colors">Disable Whispers from Strangers</span>
+                </label>
+                <p class="text-[10px] font-serif text-gray-600 italic ml-7">If checked, only Dungeon Masters of realms you have joined can send you direct messages.</p>
+            </div>
+            
+            <button onclick="window.saveChatSettings()" class="fantasy-btn w-full py-2 rounded text-xs font-bold">Save Settings</button>
+        </div>
+    </div>
+
+    <!-- CODEX PACKS BROWSE MODAL (ALL ROLES) -->
+    <div id="packs-modal" class="modal-overlay hidden z-[850]">
+        <div class="modal-container max-w-5xl text-center bg-wood !border-gray-600 shadow-2xl max-h-[85vh] overflow-y-auto scrollbar-hide p-8 rounded-lg relative">
+            <button onclick="document.getElementById('packs-modal').classList.add('hidden')" class="absolute top-4 right-4 text-2xl text-gray-500 hover:text-gold transition-colors z-50"><i class="fa-solid fa-times"></i></button>
+            <h2 class="font-heading text-3xl font-black text-gold uppercase tracking-widest mb-2 border-b-2 border-gray-700 pb-4">Codex Archives</h2>
+            <p class="text-sm font-serif text-gray-400 italic mb-8 mt-4">Browse custom script packs crafted by masters across the realms.</p>
+            
+            <div id="packs-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 text-left">
+                <!-- Packs populate here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- PACK DETAILS / CAMPAIGNS & DISCUSSION MODAL -->
+    <div id="pack-details-modal" class="modal-overlay hidden z-[900]">
+        <div class="modal-container max-w-5xl bg-wood !border-gray-600 shadow-2xl flex flex-col md:flex-row gap-6 p-6 h-[85vh] rounded-lg relative">
+            <button onclick="window.closePackDetails()" class="absolute top-4 right-4 text-2xl text-gray-500 hover:text-gold transition-colors z-50 md:hidden"><i class="fa-solid fa-times"></i></button>
+            
+            <!-- Left Column: Details & Campaigns -->
+            <div id="pd-left-col" class="w-full md:w-1/2 flex flex-col overflow-y-auto scrollbar-hide pb-4">
+                <div class="flex justify-between items-start mb-4 border-b border-gray-700 pb-4">
+                    <div>
+                        <h2 id="pd-title" class="font-heading text-2xl font-black text-gold uppercase tracking-widest drop-shadow-md">Pack Name</h2>
+                        <p id="pd-author" class="text-xs font-serif text-gray-400 italic mt-1">By Author</p>
+                    </div>
+                    <div class="text-right flex flex-col items-end gap-1">
+                        <span id="pd-version" class="bg-indigo-900 text-indigo-200 border border-indigo-700 px-2 py-0.5 rounded text-[10px] uppercase tracking-widest font-heading font-black shadow-md">v1</span>
+                        <span id="pd-downloads" class="text-[10px] text-gray-500 font-bold tracking-widest font-heading" title="Times Downloaded"><i class="fa-solid fa-download mr-1"></i>0</span>
+                    </div>
+                </div>
+                
+                <div class="text-sm font-serif text-gray-300 mb-6">
+                    <h3 class="font-heading text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Description</h3>
+                    <p id="pd-desc" class="mb-4">Description goes here</p>
+                    
+                    <h3 class="font-heading text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Latest Update Notes</h3>
+                    <p id="pd-notes" class="bg-black/30 p-3 rounded border border-gray-800 text-xs italic">Initial publication.</p>
+                    
+                    <h3 class="font-heading text-[10px] font-bold text-gold uppercase tracking-widest mb-1 mt-4">Included Archives</h3>
+                    <div id="pd-included-archives" class="flex flex-wrap gap-1.5 mb-6 bg-black/30 p-3 rounded border border-gray-800"></div>
+                </div>
+
+                <div class="flex-grow">
+                    <h3 class="font-heading text-[10px] font-bold text-gold uppercase tracking-widest mb-3 border-b border-gray-700 pb-1 flex items-center"><i class="fa-solid fa-dungeon mr-2"></i> Public Realms Running This Codex</h3>
+                    <div id="pd-campaigns-list" class="space-y-3">
+                        <!-- Campaigns list populates here -->
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-gray-700 hidden md:block">
+                    <div id="pd-admin-panel" class="hidden mb-4 border-b border-gray-700 pb-4">
+                        <h3 class="font-heading text-xs font-bold text-red-500 uppercase tracking-widest mb-2"><i class="fa-solid fa-crown mr-1"></i> Author Management</h3>
+                        <div class="flex gap-2">
+                            <button id="pd-btn-archive" onclick="window.deleteCurrentPack(false)" class="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-2 rounded text-[10px] uppercase tracking-widest font-heading font-bold transition-colors border border-gray-600">Archive</button>
+                            <button id="pd-btn-unarchive" onclick="window.unarchiveCurrentPack()" class="hidden flex-1 bg-green-900 hover:bg-green-800 text-white py-2 rounded text-[10px] uppercase tracking-widest font-heading font-bold transition-colors border border-green-700">Unarchive</button>
+                            <button id="pd-admin-perm-delete" onclick="window.deleteCurrentPack(true)" class="flex-1 bg-red-900 hover:bg-red-800 text-white py-2 rounded text-[10px] uppercase tracking-widest font-heading font-bold transition-colors border border-red-700">Full Delete</button>
+                        </div>
+                    </div>
+                    <div id="pd-owner-panel" class="hidden mb-4 border-b border-red-900 pb-4">
+                        <h3 class="font-heading text-xs font-bold text-red-600 uppercase tracking-widest mb-2"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Owner Override</h3>
+                        <button onclick="window.initiatePackDeletion()" class="w-full bg-black hover:bg-red-900 text-red-500 hover:text-white py-2 rounded text-[10px] uppercase tracking-widest font-heading font-bold transition-colors border border-red-900 shadow-md">Permanently Delete Pack</button>
+                    </div>
+                    <button onclick="window.closePackDetails()" class="w-full text-xs font-bold text-gray-500 uppercase tracking-widest hover:text-white py-2 bg-black/40 rounded border border-gray-700 transition-colors">Close Details</button>
+                </div>
+            </div>
+
+            <!-- Right Column: Discussion Board (DM Only) -->
+            <div id="pd-right-col" class="w-full md:w-1/2 flex flex-col border-t md:border-t-0 md:border-l border-gray-700 pt-6 md:pt-0 md:pl-6 h-[40vh] md:h-auto">
+                <button onclick="window.closePackDetails()" class="absolute top-4 right-4 text-2xl text-gray-500 hover:text-gold transition-colors hidden md:block"><i class="fa-solid fa-times"></i></button>
+                <h3 class="font-heading text-lg font-bold text-white uppercase tracking-widest mb-4 border-b border-gray-700 pb-2 flex justify-between items-center mt-6 md:mt-0">
+                    <span><i class="fa-solid fa-comments mr-2 text-gold"></i>DM Discussion</span>
+                </h3>
+                
+                <div id="pd-messages-container" class="flex-grow overflow-y-auto mb-4 pr-2 space-y-3 scrollbar-hide bg-black/20 rounded p-3 border border-gray-800">
+                    <!-- Messages go here -->
+                </div>
+
+                <div class="mt-auto flex gap-2">
+                    <input type="text" id="pd-new-message" class="form-input bg-black/50 border border-gray-600 focus:border-gold text-white text-xs w-full py-2 px-3 rounded" placeholder="Ask a question or leave feedback...">
+                    <button onclick="window.postPackMessage()" class="bg-gray-800 hover:bg-gray-700 text-gold px-4 py-2 rounded text-xs font-bold uppercase tracking-widest font-heading transition-colors border border-gray-600"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
+            </div>
+            
+            <!-- Right Column Replacement for Players -->
+            <div id="pd-right-col-player" class="w-full md:w-1/2 flex flex-col border-t md:border-t-0 md:border-l border-gray-700 pt-6 md:pt-0 md:pl-6 justify-center items-center h-[40vh] md:h-auto hidden">
+                <i class="fa-solid fa-lock text-4xl text-gray-700 mb-4"></i>
+                <p class="text-gray-500 text-sm font-serif italic text-center px-8">The discussion board is a sanctum reserved for Dungeon Masters seeking knowledge of these scripts.</p>
+                <button onclick="window.closePackDetails()" class="mt-8 text-xs font-bold text-gray-500 uppercase tracking-widest hover:text-white py-2 px-6 bg-black/40 rounded border border-gray-700 md:hidden">Close Details</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CREATE CAMPAIGN MODAL (DM ONLY) -->
+    <div id="create-campaign-modal" class="modal-overlay hidden z-[800]">
+        <div class="parchment-bg rounded-lg max-w-md w-full p-8 shadow-2xl border-2 border-blood">
+            <h2 class="font-heading text-2xl font-bold text-blood text-center mb-6 border-b border-blood pb-2">Forge a New Realm</h2>
+            
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-ink mb-1 font-heading">Campaign Name</label>
+                    <input type="text" id="new-campaign-name" class="w-full bg-transparent border-b-2 border-gray-400 focus:border-blood text-ink py-2 text-lg font-serif outline-none placeholder-gray-500" placeholder="e.g. The Shattered Isles">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-ink mb-1 font-heading mt-4">Description (Optional)</label>
+                    <textarea id="new-campaign-desc" rows="2" class="w-full bg-transparent border-b-2 border-gray-400 focus:border-blood text-ink py-2 font-serif outline-none resize-none" placeholder="A brief whisper of the lore..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-ink mb-1 font-heading mt-4">Visibility</label>
+                    <select id="new-campaign-vis" class="w-full bg-transparent border-b-2 border-gray-400 focus:border-blood text-ink py-2 font-serif outline-none" onchange="document.getElementById('new-campaign-limit-container').classList.toggle('hidden', this.value !== 'public')">
+                        <option value="private">Private (Invite Code Only)</option>
+                        <option value="public">Public (Visible to all)</option>
+                    </select>
+                </div>
+                <div id="new-campaign-limit-container" class="hidden">
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-ink mb-1 font-heading mt-4">Player Limit (Optional)</label>
+                    <input type="number" id="new-campaign-limit" min="1" class="w-full bg-transparent border-b-2 border-gray-400 focus:border-blood text-ink py-2 font-serif outline-none" placeholder="Leave blank for no limit">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-ink mb-1 font-heading mt-4">Starting Codex (Optional)</label>
+                    <select id="new-campaign-pack" class="w-full bg-transparent border-b-2 border-gray-400 focus:border-blood text-ink py-2 font-serif outline-none">
+                        <option value="">Blank Slate (No Scripts)</option>
+                        <!-- Populated dynamically -->
+                    </select>
+                    <div id="new-campaign-pack-preview" class="hidden mt-3 p-3 bg-black/5 border border-gray-300 rounded text-xs font-serif text-ink italic leading-relaxed shadow-inner">
+                        <!-- Populated on select -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-4 mt-8">
+                <button onclick="document.getElementById('create-campaign-modal').classList.add('hidden')" class="text-xs font-bold text-gray-600 uppercase tracking-widest hover:text-ink font-heading px-4">Cancel</button>
+                <button onclick="window.createCampaign()" class="fantasy-btn px-6 py-2 rounded text-xs">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT CAMPAIGN MODAL (DM ONLY) -->
+    <div id="edit-campaign-modal" class="modal-overlay hidden z-[800]">
+        <div class="parchment-bg rounded-lg max-w-md w-full p-8 shadow-2xl border-2 border-blood">
+            <h2 class="font-heading text-2xl font-bold text-blood text-center mb-6 border-b border-blood pb-2">Edit Realm</h2>
+            <input type="hidden" id="edit-campaign-id">
+            
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-ink mb-1 font-heading">Campaign Name</label>
+                    <input type="text" id="edit-campaign-name" class="w-full bg-transparent border-b-2 border-gray-400 focus:border-blood text-ink py-2 text-lg font-serif outline-none">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-ink mb-1 font-heading mt-4">Description</label>
+                    <textarea id="edit-campaign-desc" rows="2" class="w-full bg-transparent border-b-2 border-gray-400 focus:border-blood text-ink py-2 font-serif outline-none resize-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-ink mb-1 font-heading mt-4">Visibility</label>
+                    <select id="edit-campaign-vis" class="w-full bg-transparent border-b-2 border-gray-400 focus:border-blood text-ink py-2 font-serif outline-none" onchange="document.getElementById('edit-campaign-limit-container').classList.toggle('hidden', this.value !== 'public')">
+                        <option value="private">Private (Invite Code Only)</option>
+                        <option value="public">Public (Visible to all)</option>
+                    </select>
+                </div>
+                <div id="edit-campaign-limit-container" class="hidden">
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-ink mb-1 font-heading mt-4">Player Limit (Optional)</label>
+                    <input type="number" id="edit-campaign-limit" min="1" class="w-full bg-transparent border-b-2 border-gray-400 focus:border-blood text-ink py-2 font-serif outline-none" placeholder="Leave blank for no limit">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-ink mb-1 font-heading mt-4">Invite Code</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="edit-campaign-code" class="w-full bg-transparent border-b-2 border-gray-400 focus:border-blood text-ink py-2 font-serif outline-none uppercase font-bold tracking-widest">
+                        <button onclick="document.getElementById('edit-campaign-code').value = Math.random().toString(36).substring(2, 8).toUpperCase()" class="fantasy-btn-alt px-3 py-1 rounded text-xs" title="Generate New Code"><i class="fa-solid fa-arrows-rotate"></i></button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-ink mb-1 font-heading mt-4">Inject Additional Codex Pack (Optional)</label>
+                    <select id="edit-campaign-pack" class="w-full bg-transparent border-b-2 border-gray-400 focus:border-blood text-ink py-2 font-serif outline-none">
+                        <option value="">No Additional Pack</option>
+                        <!-- Populated dynamically -->
+                    </select>
+                    <div id="edit-campaign-pack-preview" class="hidden mt-3 p-3 bg-black/5 border border-gray-300 rounded text-xs font-serif text-ink italic leading-relaxed shadow-inner">
+                        <!-- Populated on select -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-4 mt-8">
+                <button onclick="document.getElementById('edit-campaign-modal').classList.add('hidden')" class="text-xs font-bold text-gray-600 uppercase tracking-widest hover:text-ink font-heading px-4">Cancel</button>
+                <button onclick="window.saveCampaignEdit()" class="fantasy-btn px-6 py-2 rounded text-xs">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN DELETION PROMPT MODAL -->
+    <div id="admin-delete-prompt-modal" class="modal-overlay hidden z-[990]">
+        <div class="modal-container !max-w-md text-center border-2 !border-red-600 !bg-wood">
+            <h2 id="admin-del-title" class="font-heading text-2xl font-black text-red-500 uppercase tracking-widest mb-2 border-b-2 border-red-900 pb-2">Admin Delete Action</h2>
+            <p class="text-xs font-serif text-gray-400 italic mb-6">Leave an optional message for the Dungeon Master explaining why their Realm or Pack is being removed.</p>
+            
+            <textarea id="admin-del-reason" class="w-full bg-black/50 border border-gray-600 focus:border-red-500 text-white py-2 px-3 text-sm font-serif outline-none h-24 mb-6 rounded" placeholder="E.g. Violation of community guidelines, test campaign cleanup..."></textarea>
+            
+            <div class="flex justify-center gap-4 font-heading mt-4">
+                <button onclick="document.getElementById('admin-delete-prompt-modal').classList.add('hidden'); window.pendingAdminDelete = null;" class="text-xs font-bold text-gray-500 uppercase tracking-widest hover:text-white px-4">Cancel</button>
+                <button onclick="window.executeAdminDelete()" class="bg-red-900 hover:bg-red-700 text-white px-6 py-2 rounded text-xs border border-red-500 font-bold uppercase tracking-widest shadow-lg transition-colors">Obliterate Record</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN CHAT ESCALATION MODAL -->
+    <div id="admin-escalation-modal" class="modal-overlay hidden z-[990]">
+        <div class="modal-container !max-w-md text-center border-2 !border-red-600 !bg-wood">
+            <h2 class="font-heading text-2xl font-black text-red-500 uppercase tracking-widest mb-2 border-b-2 border-red-900 pb-2">Review Report</h2>
+            <p class="text-xs font-serif text-gray-400 italic mb-6">Select an escalating action for the reported user.</p>
+            
+            <input type="hidden" id="escalation-report-id">
+            <input type="hidden" id="escalation-uid">
+            <input type="hidden" id="escalation-username">
+            
+            <div class="flex flex-col gap-3 font-heading mt-4">
+                <button onclick="window.issueWarning()" class="bg-yellow-900 hover:bg-yellow-700 text-white px-6 py-2 rounded text-xs border border-yellow-500 font-bold uppercase tracking-widest transition-colors">Warn User (Strike 1)</button>
+                <button onclick="window.issueMute(1)" class="bg-orange-900 hover:bg-orange-700 text-white px-6 py-2 rounded text-xs border border-orange-500 font-bold uppercase tracking-widest transition-colors">Mute 1 Hour (Strike 2)</button>
+                <button onclick="window.issueMute(24)" class="bg-orange-900 hover:bg-orange-700 text-white px-6 py-2 rounded text-xs border border-orange-500 font-bold uppercase tracking-widest transition-colors">Mute 24 Hours (Strike 3)</button>
+                <button onclick="window.issueBan()" class="bg-red-900 hover:bg-red-700 text-white px-6 py-2 rounded text-xs border border-red-500 font-bold uppercase tracking-widest transition-colors">Permanent Ban (Strike 4+)</button>
+            </div>
+            
+            <div class="mt-6 border-t border-gray-700 pt-4">
+                <button onclick="document.getElementById('admin-escalation-modal').classList.add('hidden')" class="text-xs font-bold text-gray-500 uppercase tracking-widest hover:text-white transition-colors">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- USER NOTIFICATIONS MODAL -->
+    <div id="user-notifications-modal" class="modal-overlay hidden z-[995]">
+        <div class="parchment-bg rounded-lg max-w-lg w-full p-8 shadow-2xl border-4 border-blood text-center relative">
+            <i class="fa-solid fa-envelope-open-text text-4xl text-blood mb-4 drop-shadow-md"></i>
+            <h2 class="font-heading text-2xl font-bold text-blood mb-6 border-b border-gray-400 pb-2">Message from the Archives</h2>
+            
+            <div id="notifications-list" class="text-left max-h-60 overflow-y-auto scrollbar-hide space-y-4 mb-6">
+                <!-- Notifications Go Here -->
+            </div>
+            
+            <button onclick="window.dismissNotifications()" class="fantasy-btn w-full py-3 rounded text-sm font-bold shadow-lg">Acknowledge & Dismiss</button>
+        </div>
+    </div>
+
+    <!-- DM CONFIRMATION MODAL -->
+    <div id="dm-confirm-modal" class="modal-overlay hidden z-[1100]">
+        <div class="parchment-bg rounded-lg max-w-sm w-full p-6 shadow-2xl border-2 border-gold text-center relative">
+            <h2 class="font-heading text-xl font-bold text-ink mb-2">Interact with Traveler?</h2>
+            <p class="text-sm font-serif text-gray-700 mb-6 italic">How would you like to interact with <strong id="dm-confirm-name" class="text-blood font-heading tracking-widest uppercase"></strong>?</p>
+            
+            <div class="flex flex-col gap-3 font-heading border-b border-gray-300 pb-4 mb-4">
+                <button onclick="window.confirmDirectMessage()" class="fantasy-btn py-2 rounded text-xs shadow-lg w-full"><i class="fa-solid fa-comment mr-2"></i> Whisper Privately</button>
+                <button id="btn-add-friend" onclick="window.sendFriendRequestFromModal()" class="bg-gray-800 hover:bg-black text-gold border border-gold py-2 rounded text-xs shadow-lg w-full transition-colors"><i class="fa-solid fa-user-plus mr-2"></i> Send Friend Request</button>
+                <button onclick="document.getElementById('dm-confirm-modal').classList.add('hidden')" class="bg-gray-300 hover:bg-gray-400 text-ink py-2 rounded text-xs font-bold uppercase tracking-widest shadow transition-colors w-full">Cancel</button>
+            </div>
+            <button onclick="window.confirmBlockUser()" class="text-[10px] text-gray-500 hover:text-red-600 font-bold uppercase tracking-widest font-heading transition-colors"><i class="fa-solid fa-ban mr-1"></i> Block this User</button>
+        </div>
+    </div>
+
+    <!-- REPORT MODAL -->
+    <div id="report-modal" class="modal-overlay hidden z-[1050]">
+        <div class="parchment-bg rounded-lg max-w-sm w-full p-6 shadow-2xl border-2 border-blood text-center relative">
+            <h2 class="font-heading text-xl font-bold text-blood mb-2">Report to Admin</h2>
+            <p class="text-sm font-serif text-gray-700 mb-4 italic">Reporting <strong id="report-target-name" class="font-heading tracking-widest uppercase"></strong>.</p>
+            <textarea id="report-reason" class="w-full bg-white/50 border border-gray-400 focus:border-blood text-ink py-2 px-3 font-serif outline-none h-24 mb-6 rounded" placeholder="State the reason for this report..."></textarea>
+            <div class="flex justify-center gap-4 font-heading">
+                <button onclick="document.getElementById('report-modal').classList.add('hidden')" class="text-xs font-bold text-gray-500 uppercase tracking-widest hover:text-ink px-4 transition-colors">Cancel</button>
+                <button onclick="window.submitReport()" class="fantasy-btn px-6 py-2 rounded text-xs shadow-lg">Submit Report</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CREATE GROUP MODAL -->
+    <div id="create-group-modal" class="modal-overlay hidden z-[1050]">
+        <div class="parchment-bg rounded-lg max-w-sm w-full p-6 shadow-2xl border-2 border-gold text-center relative">
+            <h2 class="font-heading text-xl font-bold text-ink mb-1">Form an Alliance</h2>
+            <p class="text-[10px] text-gray-600 font-serif italic mb-4">Establish a private group channel with your friends.</p>
+            
+            <input type="text" id="new-group-name" class="form-input w-full p-2 text-sm rounded mb-4" placeholder="Group Name (Optional)">
+
+            <div class="text-left mb-4">
+                <p class="text-[10px] font-heading font-bold text-ink uppercase tracking-widest mb-1">Select from Ledger:</p>
+                <div id="group-friends-list" class="max-h-32 overflow-y-auto border border-gray-400 rounded bg-white/30 scrollbar-hide">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+            
+            <div class="text-left mb-4">
+                <p class="text-[10px] font-heading font-bold text-ink uppercase tracking-widest mb-1">Invited Travelers:</p>
+                <div id="selected-group-members" class="flex flex-wrap gap-2 min-h-[40px] p-2 bg-white/50 border border-gray-300 rounded shadow-inner">
+                    <!-- Pills go here -->
+                </div>
+            </div>
+            
+            <div class="flex justify-between gap-4 mt-6 border-t border-gray-300 pt-4">
+                <button onclick="window.closeCreateGroupModal()" class="text-xs font-bold text-gray-500 uppercase tracking-widest hover:text-ink font-heading transition-colors">Cancel</button>
+                <button id="btn-confirm-create-group" onclick="window.confirmCreateGroup()" class="fantasy-btn px-6 py-2 rounded text-xs shadow-lg">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FRIENDS MODAL -->
+    <div id="friends-modal" class="modal-overlay hidden z-[1050]">
+        <div class="parchment-bg rounded-lg max-w-sm w-full p-6 shadow-2xl border-2 border-gold text-center relative">
+            <button onclick="document.getElementById('friends-modal').classList.add('hidden')" class="absolute top-2 right-3 text-gray-500 hover:text-blood text-xl"><i class="fa-solid fa-xmark"></i></button>
+            <h2 class="font-heading text-xl font-bold text-ink mb-4 border-b border-gray-400 pb-2">Traveler Ledger</h2>
+            
+            <!-- Tabs -->
+            <div class="flex border-b border-gold mb-4">
+                <button id="tab-friends-list" onclick="window.switchFriendTab('list')" class="flex-1 py-1 font-heading font-bold text-blood border-b-2 border-blood text-[10px] uppercase tracking-widest">My Ledger</button>
+                <button id="tab-friends-reqs" onclick="window.switchFriendTab('reqs')" class="flex-1 py-1 font-heading font-bold text-ink hover:text-blood transition text-[10px] uppercase tracking-widest relative">Requests <span id="req-tab-badge" class="ml-1 bg-blood text-white rounded-full px-1.5 py-0.5 text-[8px] hidden shadow">0</span></button>
+                <button id="tab-friends-search" onclick="window.switchFriendTab('search')" class="flex-1 py-1 font-heading font-bold text-ink hover:text-blood transition text-[10px] uppercase tracking-widest">Find</button>
+            </div>
+
+            <!-- Tab Contents -->
+            <div id="friends-view-list" class="max-h-60 overflow-y-auto scrollbar-hide text-left space-y-2">
+                <!-- Friends populate here -->
+            </div>
+            
+            <div id="friends-view-reqs" class="hidden max-h-60 overflow-y-auto scrollbar-hide text-left space-y-2">
+                <!-- Requests populate here -->
+            </div>
+            
+            <div id="friends-view-search" class="hidden text-left">
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="friend-search-input" class="form-input flex-grow p-2 text-sm rounded" placeholder="Search by exact name...">
+                    <button onclick="window.searchUsersForFriend()" class="bg-ink text-gold px-3 rounded hover:bg-black transition-colors"><i class="fa-solid fa-search"></i></button>
+                </div>
+                <div id="friend-search-results" class="max-h-40 overflow-y-auto scrollbar-hide space-y-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- External JavaScript -->
+    <script type="module" src="js/campaigns.js"></script>
+</body>
+</html>
