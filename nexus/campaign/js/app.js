@@ -391,110 +391,100 @@ window.renderExhaustionUI = (lvl) => {
     }
 };
 
-// --- STRESS THRESHOLD CHECK & DISPLAY TOGGLE ---
+// --- STRESS THRESHOLD & DM-ONLY TRAUMA LOGIC ---
 window.checkStressThreshold = (val) => {
     const curStress = parseInt(val) || 0;
     const thresholdInput = document.querySelector('[data-key="stressThreshold"]');
     const threshold = parseInt(thresholdInput?.value) || 10;
     
     const alertBanner = document.getElementById('stress-threshold-alert');
-    const fieldsContainer = document.getElementById('scars-trauma-fields');
-    const unlockedBadge = document.getElementById('trauma-unlocked-badge');
-
-    const scarDesc = document.querySelector('[data-key="scarDesc"]')?.value;
-    const hasExistingData = scarDesc && scarDesc.trim() !== '';
 
     if (curStress >= threshold) {
-        if (alertBanner && !hasExistingData) alertBanner.classList.remove('hidden');
-        if (fieldsContainer && hasExistingData) fieldsContainer.classList.remove('hidden');
-        if (unlockedBadge && hasExistingData) unlockedBadge.classList.remove('hidden');
-        if (!hasExistingData) window.showToast(`⚡ Stress threshold (${threshold}) reached! Roll your Scar & Trauma.`);
+        if (alertBanner) alertBanner.classList.remove('hidden');
+        window.showToast(`⚡ Stress threshold (${threshold}) reached! Awaiting DM/Admin to assign Trauma or Scar.`);
     } else {
         if (alertBanner) alertBanner.classList.add('hidden');
-        if (fieldsContainer) fieldsContainer.classList.toggle('hidden', !hasExistingData);
-        if (unlockedBadge) unlockedBadge.classList.toggle('hidden', !hasExistingData);
     }
 };
 
-// --- GENERATE SCARS & TRAUMA (UNLOCKED ONLY AT THRESHOLD) ---
-window.generateScarsAndTrauma = () => {
-    const curStress = parseInt(document.querySelector('[data-key="currentStress"]')?.value) || 0;
-    const threshold = parseInt(document.querySelector('[data-key="stressThreshold"]')?.value) || 10;
+// Open DM Trauma Assignment Modal
+window.openDmTraumaModal = () => {
+    if (activeRole !== 'dm') {
+        window.showToast("Only the Dungeon Master or Admin can assign Scars & Trauma.");
+        return;
+    }
+    document.getElementById('dt-what').value = '';
+    document.getElementById('dt-why').value = '';
+    document.getElementById('dt-how').value = '';
+    document.getElementById('dt-benefit').value = '';
+    document.getElementById('dt-complication').value = '';
+    document.getElementById('dm-trauma-modal')?.classList.remove('hidden');
+};
 
-    if (curStress < threshold) {
-        window.showToast(`Cannot roll! Stress (${curStress}) must be at least ${threshold}.`);
+// Save DM Trauma Record & Reset Character Stress
+window.saveDmTrauma = async () => {
+    const char = characters.find(c => c.id === activeCharId);
+    if (!char) return;
+
+    const what = document.getElementById('dt-what').value.trim();
+    const why = document.getElementById('dt-why').value.trim();
+    const how = document.getElementById('dt-how').value.trim();
+    const benefit = document.getElementById('dt-benefit').value.trim();
+    const complication = document.getElementById('dt-complication').value.trim();
+
+    if (!what) return window.showToast("Please write what happened.");
+
+    const existingRecords = char.traumaRecords || [];
+    const newRecord = {
+        what,
+        why,
+        how,
+        benefit,
+        complication,
+        assignedBy: currentUser.username,
+        timestamp: Date.now()
+    };
+
+    const updatedRecords = [newRecord, ...existingRecords];
+
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'characters', activeCharId), {
+        traumaRecords: updatedRecords,
+        currentStress: 0
+    });
+
+    document.getElementById('dm-trauma-modal')?.classList.add('hidden');
+    document.getElementById('stress-threshold-alert')?.classList.add('hidden');
+    window.showToast("Trauma/Scar assigned! Stress reset to 0.");
+};
+
+window.renderTraumaListUI = (records = []) => {
+    const container = document.getElementById('trauma-records-list');
+    const countBadge = document.getElementById('trauma-count-badge');
+
+    if (countBadge) {
+        countBadge.innerText = `${records.length} ${records.length === 1 ? 'Record' : 'Records'}`;
+    }
+
+    if (!container) return;
+
+    if (records.length === 0) {
+        container.innerHTML = `<p class="text-xs text-gray-500 italic text-center py-2">No scars or traumas recorded yet.</p>`;
         return;
     }
 
-    const getD100 = () => Math.floor(Math.random() * 100) + 1;
-    const getD20 = () => Math.floor(Math.random() * 20) + 1;
-
-    // Step 1 - Severity
-    const r1 = getD100();
-    const scarSev = r1 <= 15 ? "No significant scar" : r1 <= 30 ? "Minor scar" : r1 <= 50 ? "Noticeable scar" : r1 <= 70 ? "Severe scar" : r1 <= 85 ? "Multiple scars" : r1 <= 95 ? "Major disfigurement" : "Permanent injury";
-
-    // Step 2 - Type
-    const r2 = getD100();
-    const scarType = r2 <= 8 ? "Burn" : r2 <= 16 ? "Cut" : r2 <= 24 ? "Puncture" : r2 <= 32 ? "Bite" : r2 <= 40 ? "Fracture" : r2 <= 48 ? "Chemical/acid damage" : r2 <= 55 ? "Electrical damage" : r2 <= 62 ? "Script-related injury" : r2 <= 69 ? "Fracture exposure" : r2 <= 76 ? "Surgical/experimental" : r2 <= 82 ? "Creature attack" : r2 <= 88 ? "Machinery accident" : r2 <= 93 ? "Battlefield injury" : r2 <= 97 ? "Missing/damaged body part" : "Strange/unexplained scar";
-
-    // Step 3 - Location
-    const r3 = getD100();
-    const scarLoc = r3 <= 10 ? "Head" : r3 <= 18 ? "Face" : r3 <= 25 ? "Neck" : r3 <= 35 ? "Chest" : r3 <= 45 ? "Back" : r3 <= 53 ? "Arm" : r3 <= 61 ? "Hand" : r3 <= 69 ? "Leg" : r3 <= 77 ? "Foot" : r3 <= 85 ? "Multiple locations" : r3 <= 92 ? "Hidden beneath clothing" : r3 <= 97 ? "Visible to everyone" : "Unusual location";
-
-    // Step 4 - Cause
-    const r4 = getD100();
-    const scarCause = r4 <= 10 ? "Childhood accident" : r4 <= 20 ? "Wilderness accident" : r4 <= 30 ? "Creature attack" : r4 <= 40 ? "Combat" : r4 <= 48 ? "Failed Script" : r4 <= 55 ? "Industrial machinery" : r4 <= 62 ? "Fracture event" : r4 <= 68 ? "Fire" : r4 <= 74 ? "Acid/Chemical" : r4 <= 80 ? "Collapse/Disaster" : r4 <= 85 ? "Captivity" : r4 <= 90 ? "Experimentation" : r4 <= 94 ? "Deliberately caused by someone" : r4 <= 97 ? "Self-inflicted" : "Unknown";
-
-    // Step 6 - Trauma Severity
-    const r6 = getD20();
-    const traumaSev = r6 <= 5 ? "Difficult memory" : r6 <= 10 ? "Lingering experience" : r6 <= 14 ? "Significant trauma" : r6 <= 17 ? "Deep trauma" : r6 <= 19 ? "Life-defining trauma" : "Defining event";
-
-    // Step 7 - Event
-    const r7 = getD100();
-    const traumaEv = r7 <= 10 ? "Someone important died" : r7 <= 20 ? "Someone important disappeared" : r7 <= 30 ? "Home was destroyed" : r7 <= 40 ? "Betrayed by trusted person" : r7 <= 50 ? "Failed to save someone" : r7 <= 60 ? "Imprisoned/Captive" : r7 <= 68 ? "Hunted" : r7 <= 75 ? "Witnessed something horrific" : r7 <= 82 ? "Forced to hurt someone" : r7 <= 88 ? "Abandoned someone" : r7 <= 94 ? "Survived when others didn't" : r7 <= 97 ? "Caused unintended disaster" : "Fracture event connection";
-
-    // Step 8 - Person Involved
-    const r8 = getD100();
-    const personInv = r8 <= 15 ? "Parent" : r8 <= 25 ? "Sibling" : r8 <= 35 ? "Child" : r8 <= 45 ? "Friend" : r8 <= 55 ? "Mentor" : r8 <= 65 ? "Romantic partner" : r8 <= 72 ? "Commander/Superior" : r8 <= 80 ? "Entire community" : r8 <= 87 ? "Stranger" : r8 <= 93 ? "Enemy" : r8 <= 97 ? "Themselves" : "Unknown";
-
-    // Step 9 - Trigger
-    const r9 = getD100();
-    const traumaTrig = r9 <= 10 ? "Certain sound" : r9 <= 20 ? "Certain smell" : r9 <= 30 ? "Fire" : r9 <= 38 ? "Darkness" : r9 <= 46 ? "Blood or injury" : r9 <= 54 ? "Confinement" : r9 <= 62 ? "Being restrained" : r9 <= 69 ? "Machinery" : r9 <= 76 ? "A particular creature" : r9 <= 82 ? "A particular Script" : r9 <= 88 ? "Someone dying" : r9 <= 93 ? "Being abandoned" : r9 <= 97 ? "Losing control" : "Specific original event link";
-
-    // Step 10 & 11 - Response & Coping
-    const r10 = getD100();
-    const resp = r10 <= 20 ? "Fight — confront threat" : r10 <= 35 ? "Flight — escape/distance" : r10 <= 50 ? "Freeze — hesitate/overwhelmed" : r10 <= 60 ? "Focus — intensely practical" : r10 <= 70 ? "Protect — protect others" : r10 <= 80 ? "Control — attempt control" : r10 <= 90 ? "Withdraw — quiet/distant" : r10 <= 95 ? "Deflect — humor/anger" : "Adapt — search for solution";
-
-    const r11 = getD100();
-    const cope = r11 <= 8 ? "Maintain equipment" : r11 <= 16 ? "Train constantly" : r11 <= 24 ? "Keep busy" : r11 <= 32 ? "Make jokes" : r11 <= 40 ? "Stay close to trusted people" : r11 <= 48 ? "Avoid talking about it" : r11 <= 55 ? "Talk openly" : r11 <= 62 ? "Strict routines" : r11 <= 69 ? "Collect keepsakes" : r11 <= 76 ? "Help others" : r11 <= 82 ? "Study the event" : r11 <= 88 ? "Travel constantly" : r11 <= 94 ? "Create art/music" : "Turn into personal mission";
-
-    // Step 12 - Mechanical Effect
-    const r12 = getD20();
-    const eff = r12 <= 10 ? "Narrative Only" : r12 <= 14 ? "Roleplay Trait" : r12 <= 17 ? "Situational Benefit" : r12 <= 19 ? "Situational Complication" : "Benefit & Complication";
-
-    const setKeyVal = (key, val) => {
-        const el = document.querySelector(`[data-key="${key}"]`);
-        if (el) el.value = val;
-    };
-
-    setKeyVal("scarDesc", `${scarSev} (${scarType})`);
-    setKeyVal("scarLocation", scarLoc);
-    setKeyVal("scarCause", scarCause);
-    setKeyVal("traumaEvent", `${traumaEv} (Involving: ${personInv})`);
-    setKeyVal("traumaSeverity", traumaSev);
-    setKeyVal("traumaTrigger", traumaTrig);
-    setKeyVal("traumaResponse", `${resp} / ${cope}`);
-    setKeyVal("traumaStrength", `Mechanical Effect: ${eff}`);
-    setKeyVal("traumaComplication", `DM Narrative Hook: Triggered by ${traumaTrig}`);
-
-    // Reset stress back to 0 and reveal framework
-    setKeyVal("currentStress", 0);
-    document.getElementById('stress-threshold-alert')?.classList.add('hidden');
-    document.getElementById('scars-trauma-fields')?.classList.remove('hidden');
-    document.getElementById('trauma-unlocked-badge')?.classList.remove('hidden');
-
-    window.saveCurrentCharacter();
-    window.showToast("Scars & Trauma Framework Unlocked & Generated! Stress reset to 0.");
+    container.innerHTML = records.map((r, i) => `
+        <div class="bg-[rgba(255,255,255,0.4)] border border-[rgba(139,90,43,0.3)] p-3 rounded space-y-2 text-xs font-serif shadow-sm">
+            <div class="flex justify-between items-start border-b border-[rgba(139,90,43,0.2)] pb-1">
+                <span class="font-heading font-black text-blood uppercase text-[10px]">Record #${records.length - i}</span>
+                <span class="text-[9px] text-gray-500 italic">Assigned by ${r.assignedBy || 'DM'}</span>
+            </div>
+            <div><strong class="text-blood block tiny-label">What Happened?</strong> <span class="italic text-ink">${r.what}</span></div>
+            ${r.why ? `<div><strong class="text-555 block tiny-label">Why / Cause:</strong> <span class="italic text-ink">${r.why}</span></div>` : ''}
+            ${r.how ? `<div><strong class="text-555 block tiny-label">How / Trigger:</strong> <span class="italic text-ink">${r.how}</span></div>` : ''}
+            ${r.benefit ? `<div><strong class="text-green-900 block tiny-label">Situational Benefit:</strong> <span class="italic text-green-900 font-semibold">${r.benefit}</span></div>` : ''}
+            ${r.complication ? `<div><strong class="text-blood block tiny-label">Complication / Narrative Hook:</strong> <span class="italic text-blood font-semibold">${r.complication}</span></div>` : ''}
+        </div>
+    `).join('');
 };
 
 const DEFAULT_MODULES = {
@@ -795,6 +785,7 @@ window.createChar = async (type) => {
             profArmor: "", profWeapons: "", profTools: "", 
             imageSrc: "", heroicInspiration: 0, exhaustion: 0, 
             currentStress: 0, stressThreshold: 10,
+            traumaRecords: [],
             passivePerception: 10,
             init: "",
             isInCombat: false
@@ -884,8 +875,9 @@ function syncSheetData() {
         dmResetRollBtn.classList.toggle('hidden', !isDM || !char.scoresGenerated);
     }
 
-    // Check stress threshold & framework fields
+    // Check stress threshold & render trauma records
     window.checkStressThreshold(char.currentStress || 0);
+    window.renderTraumaListUI(char.traumaRecords || []);
 
     // Render exhaustion UI
     window.renderExhaustionUI(parseInt(char.exhaustion) || 0);
