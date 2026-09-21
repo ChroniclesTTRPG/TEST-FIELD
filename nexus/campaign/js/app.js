@@ -2,343 +2,488 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/fireba
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, addDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
-// --- AEONFALL DATA-DRIVEN VOCATIONS DATA ENGINE ---
-const VOCATION_CONFIG = {
-    'heartbound': {
-        name: 'Heartbound', baseClass: 'Paladin', hitDie: 10, primaryAbilities: 'Strength / Charisma', multiclassReq: 'Strength 13 or Charisma 13',
-        trackers: ['Script Slots', 'Concords', 'Heart Resonance Tracker', 'Heart Strain Tracker'],
-        features: ['Scriptcasting', 'Scriptcasting Focus', 'Component Satchel', 'Known Scripts', 'Core-Touched Effects'],
-        equip: ['Heart Focus', 'Component Materials'],
-        progression: {
-            1: ['Heartbound features'], 2: ['Fighting Style', 'Scriptcasting', 'Heartbound feature'], 3: ['Heartbound Path'], 4: ['ASI / Feat'], 5: ['Extra Attack'],
-            6: ['Protective feature'], 7: ['Path feature'], 8: ['ASI / Feat'], 9: ['Higher-tier progression'], 10: ['Aura/defensive feature'], 11: ['Damage enhancement'],
-            12: ['ASI / Feat'], 13: ['Higher-tier progression'], 14: ['Cleansing/restoration feature'], 15: ['Path feature'], 16: ['ASI / Feat'], 17: ['Higher-tier progression'],
-            18: ['Improved aura'], 19: ['ASI / Feat'], 20: ['Heartbound capstone']
-        }
-    },
-    'nomad': {
-        name: 'Nomad', baseClass: 'Ranger', hitDie: 10, primaryAbilities: 'Dexterity / Wisdom', multiclassReq: 'Dexterity 13 or Wisdom 13',
-        trackers: ['Survival Resources', 'Companion Tracker'],
-        features: ['Travel Features', 'Route Knowledge', 'Vehicle/Transport Features', 'Exploration Benefits'],
-        equip: ['Travel Gear', 'Navigation Tools', 'Survival Supplies'],
-        progression: {
-            1: ['Favored Enemy / Exploration features'], 2: ['Fighting Style', 'Scriptcasting'], 3: ['Nomad Path'], 4: ['ASI / Feat'], 5: ['Extra Attack'],
-            6: ['Exploration feature'], 7: ['Path feature'], 8: ['ASI / Feat'], 9: ['Higher-tier progression'], 10: ['Wilderness feature'], 11: ['Path feature'],
-            12: ['ASI / Feat'], 13: ['Higher-tier progression'], 14: ['Exploration feature'], 15: ['Path feature'], 16: ['ASI / Feat'], 17: ['Higher-tier progression'],
-            18: ['Senses / tracking feature'], 19: ['ASI / Feat'], 20: ['Nomad capstone']
-        }
-    },
-    'warden': {
-        name: 'Wilderness Warden', baseClass: 'Druid', hitDie: 8, primaryAbilities: 'Wisdom', multiclassReq: 'Wisdom 13',
-        trackers: ['Companion Tracker'],
-        features: ['Nature Features', 'Tracking Abilities', 'Survival Techniques'],
-        equip: ['Warden Tools', 'Hunting Gear'],
-        progression: {
-            1: ['Warden features', 'Scriptcasting'], 2: ['Wilderness Warden Circle'], 3: ['Higher Script access'], 4: ['ASI / Feat'], 5: ['Higher-tier Scripts'],
-            6: ['Circle feature'], 7: ['Higher-tier Scripts'], 8: ['ASI / Feat'], 9: ['Higher-tier Scripts'], 10: ['Circle feature'], 11: ['Higher-tier Scripts'],
-            12: ['ASI / Feat'], 13: ['Higher-tier Scripts'], 14: ['Circle feature'], 15: ['Higher-tier Scripts'], 16: ['ASI / Feat'], 17: ['Higher-tier Scripts'],
-            18: ['Warden feature'], 19: ['ASI / Feat'], 20: ['Warden capstone']
-        }
-    },
-    'chronicler': {
-        name: 'Chronicler', baseClass: 'Cleric', hitDie: 8, primaryAbilities: 'Wisdom', multiclassReq: 'Wisdom 13',
-        trackers: ['Inspiration Tracker'],
-        features: ['Recorded Knowledge', 'Lore Archive', 'Story/Memory Features'],
-        equip: ['Journal', 'Recording Tools'],
-        progression: {
-            1: ['Chronicler features', 'Scriptcasting'], 2: ['Chronicler feature'], 3: ['Chronicler Path'], 4: ['ASI / Feat'], 5: ['Higher-tier Scripts'],
-            6: ['Path feature'], 7: ['Higher-tier Scripts'], 8: ['ASI / Feat'], 9: ['Higher-tier Scripts'], 10: ['Chronicler feature'], 11: ['Higher-tier Scripts'],
-            12: ['ASI / Feat'], 13: ['Higher-tier Scripts'], 14: ['Path feature'], 15: ['Higher-tier Scripts'], 16: ['ASI / Feat'], 17: ['Higher-tier Scripts'],
-            18: ['Chronicler feature'], 19: ['ASI / Feat'], 20: ['Chronicler capstone']
-        }
-    },
-    'orator': {
-        name: 'Orator', baseClass: 'Bard', hitDie: 8, primaryAbilities: 'Charisma', multiclassReq: 'Charisma 13',
-        trackers: ['Script Slots', 'Concords', 'Inspiration Pool', 'Influence Tracker'],
-        features: ['Scriptcasting', 'Scriptcasting Focus', 'Social Abilities'],
-        equip: ['Focus Item', 'Performance Tools'],
-        progression: {
-            1: ['Inspiration', 'Scriptcasting'], 2: ['Orator feature'], 3: ['Orator Path'], 4: ['ASI / Feat'], 5: ['Inspiration improvement'],
-            6: ['Path feature'], 7: ['Higher-tier Scripts'], 8: ['ASI / Feat'], 9: ['Expertise / Script progression'], 10: ['Inspiration improvement'],
-            11: ['Higher-tier Scripts'], 12: ['ASI / Feat'], 13: ['Higher-tier Scripts'], 14: ['Path feature'], 15: ['Inspiration improvement'],
-            16: ['ASI / Feat'], 17: ['Higher-tier Scripts'], 18: ['Inspiration improvement'], 19: ['ASI / Feat'], 20: ['Orator capstone']
-        }
-    },
-    'scriptweaver': {
-        name: 'Scriptweaver', baseClass: 'Sorcerer', hitDie: 6, primaryAbilities: 'Charisma', multiclassReq: 'Charisma 13',
-        trackers: ['Script Slots', 'Concords'],
-        features: ['Scriptcasting', 'Scriptcasting Focus', 'Prepared Scripts', 'Script Modifiers'],
-        equip: ['Script Focus', 'Script Archive'],
-        progression: {
-            1: ['Scriptcasting', 'Scriptweaver Origin'], 2: ['Script Points / equivalent feature'], 3: ['Origin feature'], 4: ['ASI / Feat'], 5: ['Higher-tier Scripts'],
-            6: ['Origin feature'], 7: ['Higher-tier Scripts'], 8: ['ASI / Feat'], 9: ['Higher-tier Scripts'], 10: ['Script modification feature'],
-            11: ['Higher-tier Scripts'], 12: ['ASI / Feat'], 13: ['Higher-tier Scripts'], 14: ['Origin feature'], 15: ['Higher-tier Scripts'],
-            16: ['ASI / Feat'], 17: ['Higher-tier Scripts'], 18: ['Script modification feature'], 19: ['ASI / Feat'], 20: ['Scriptweaver capstone']
-        }
-    },
-    'wartouched': {
-        name: 'War-Touched', baseClass: 'Warlock', hitDie: 8, primaryAbilities: 'Charisma', multiclassReq: 'Charisma 13',
-        trackers: ['Core Energy Tracker', 'Mutation Tracker', 'Instability Tracker'],
-        features: ['Transformation Abilities', 'Enhanced Physiology Features'],
-        equip: ['Core Relic', 'Mutation Records'],
-        progression: {
-            1: ['Patron/Source', 'Scriptcasting'], 2: ['Invocation-style features'], 3: ['War-Touched Path'], 4: ['ASI / Feat'], 5: ['Higher-tier Scripts'],
-            6: ['Path feature'], 7: ['Higher-tier Scripts'], 8: ['ASI / Feat'], 9: ['Higher-tier Scripts'], 10: ['Path feature'], 11: ['Higher-tier Scripts'],
-            12: ['ASI / Feat'], 13: ['Higher-tier Scripts'], 14: ['Path feature'], 15: ['Invocation feature'], 16: ['ASI / Feat'], 17: ['Higher-tier Scripts'],
-            18: ['Invocation feature'], 19: ['ASI / Feat'], 20: ['War-Touched capstone']
-        }
-    },
-    'archivist': {
-        name: 'Archivist', baseClass: 'Wizard', hitDie: 6, primaryAbilities: 'Intelligence', multiclassReq: 'Intelligence 13',
-        trackers: ['Script Slots', 'Concords'],
-        features: ['Scriptcasting', 'Archive Codex', 'Research Database', 'Relic Records'],
-        equip: ['Archive Tools', 'Data Storage'],
-        progression: {
-            1: ['Scriptcasting', 'Archive'], 2: ['Archive specialization'], 3: ['Archive feature'], 4: ['ASI / Feat'], 5: ['Higher-tier Scripts'],
-            6: ['Archive feature'], 7: ['Higher-tier Scripts'], 8: ['ASI / Feat'], 9: ['Higher-tier Scripts'], 10: ['Archive feature'], 11: ['Higher-tier Scripts'],
-            12: ['ASI / Feat'], 13: ['Higher-tier Scripts'], 14: ['Archive feature'], 15: ['Higher-tier Scripts'], 16: ['ASI / Feat'], 17: ['Higher-tier Scripts'],
-            18: ['Archive feature'], 19: ['ASI / Feat'], 20: ['Archivist capstone']
-        }
-    },
-    'fabricator': {
-        name: 'Fabricator', baseClass: 'Artificer', hitDie: 8, primaryAbilities: 'Intelligence', multiclassReq: 'Intelligence 13',
-        trackers: ['Script Slots', 'Concords', 'Construct Tracker', 'Active Creations'],
-        features: ['Fabrication Toolkit', 'Schematics', 'Crafting Materials'],
-        equip: ['Fabrication Tools', 'Workshop Supplies'],
-        progression: {
-            1: ['Fabricator features', 'Scriptcasting'], 2: ['Infusion/augmentation system'], 3: ['Fabricator specialization'], 4: ['ASI / Feat'], 5: ['Higher-tier Scripts'],
-            6: ['Fabrication feature'], 7: ['Specialization feature'], 8: ['ASI / Feat'], 9: ['Higher-tier Scripts'], 10: ['Fabrication feature'], 11: ['Advanced fabrication'],
-            12: ['ASI / Feat'], 13: ['Higher-tier Scripts'], 14: ['Specialization feature'], 15: ['Fabrication feature'], 16: ['ASI / Feat'], 17: ['Higher-tier Scripts'],
-            18: ['Fabrication feature'], 19: ['ASI / Feat'], 20: ['Fabricator capstone']
-        }
-    },
-    'peacekeeper': {
-        name: 'Peacekeeper', baseClass: 'Monk', hitDie: 8, primaryAbilities: 'Dexterity / Wisdom', multiclassReq: 'Dexterity 13 and Wisdom 13',
-        trackers: ['Marked Targets Tracker'],
-        features: ['Authority Features', 'Command Abilities', 'Tactical Orders'],
-        equip: ['Badge/Emblem', 'Restraint Tools'],
-        progression: {
-            1: ['Martial Arts', 'Peacekeeper features'], 2: ['Ki-equivalent resource'], 3: ['Peacekeeper Discipline'], 4: ['ASI / Feat'], 5: ['Extra Attack'],
-            6: ['Discipline feature'], 7: ['Defensive feature'], 8: ['ASI / Feat'], 9: ['Movement improvement'], 10: ['Defensive feature'], 11: ['Discipline feature'],
-            12: ['ASI / Feat'], 13: ['Communication/sensory feature'], 14: ['Defensive feature'], 15: ['Advanced Peacekeeper feature'], 16: ['ASI / Feat'],
-            17: ['Discipline feature'], 18: ['Advanced defensive feature'], 19: ['ASI / Feat'], 20: ['Peacekeeper capstone']
-        }
+// --- FIREBASE INITIALIZATION (MOVED TO TOP SCOPE) ---
+const firebaseConfig = {
+    apiKey: "AIzaSyCKRN5dfi4og69_D8ZAvV1BQfwCK_f2uis",
+    authDomain: "dndcampaigns-f3d48.firebaseapp.com",
+    projectId: "dndcampaigns-f3d48",
+    storageBucket: "dndcampaigns-f3d48.firebasestorage.app",
+    messagingSenderId: "1074491536795",
+    appId: "1:1074491536795:web:56211729489be776d79d3e"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// --- DYNAMIC CLASS GENERATOR ---
+const VOCATION_DATA = {
+    'vanguard': {
+        trackers: ['Guard Stance Tracker'],
+        features: ['Vanguard Features', 'Defensive Techniques', 'Challenge Targets', 'Armor Training', 'Weapon Mastery'],
+        equip: ['Primary Weapon', 'Shield/Defensive Gear', 'Heavy Equipment']
     },
     'warrior': {
-        name: 'Warrior', baseClass: 'Fighter', hitDie: 10, primaryAbilities: 'Strength / Dexterity', multiclassReq: 'Strength 13 or Dexterity 13',
         trackers: ['Battle Surge Tracker'],
-        features: ['Combat Techniques', 'Weapon Specializations', 'Fighting Style'],
-        equip: ['Weapon Loadout', 'Ammunition'],
-        progression: {
-            1: ['Fighting Style', 'Second Wind'], 2: ['Action Surge'], 3: ['Warrior Archetype'], 4: ['ASI / Feat'], 5: ['Extra Attack'], 6: ['ASI / Feat'],
-            7: ['Archetype feature'], 8: ['ASI / Feat'], 9: ['Indomitable'], 10: ['Archetype feature'], 11: ['Extra Attack improvement'], 12: ['ASI / Feat'],
-            13: ['Indomitable improvement'], 14: ['ASI / Feat'], 15: ['Archetype feature'], 16: ['ASI / Feat'], 17: ['Action Surge / Indomitable improvement'],
-            18: ['Archetype feature'], 19: ['ASI / Feat'], 20: ['Extra Attack improvement']
-        }
+        features: ['Combat Techniques', 'Weapon Specializations', 'Fighting Style', 'Tactical Maneuvers'],
+        equip: ['Weapon Loadout', 'Ammunition', 'Combat Gear']
     },
-    'vanguard': {
-        name: 'Vanguard', baseClass: 'Barbarian', hitDie: 12, primaryAbilities: 'Strength', multiclassReq: 'Strength 13',
-        trackers: ['Guard Stance Tracker'],
-        features: ['Vanguard Features', 'Defensive Techniques', 'Challenge Targets'],
-        equip: ['Primary Weapon', 'Shield/Defensive Gear'],
-        progression: {
-            1: ['Rage', 'Unarmored Defense'], 2: ['Reckless Attack', 'Danger Sense'], 3: ['Vanguard Path'], 4: ['ASI / Feat'], 5: ['Extra Attack', 'movement improvement'],
-            6: ['Path feature'], 7: ['Feral Instinct'], 8: ['ASI / Feat'], 9: ['Brutal Critical'], 10: ['Path feature'], 11: ['Relentless feature'],
-            12: ['ASI / Feat'], 13: ['Brutal Critical'], 14: ['Path feature'], 15: ['Rage improvement'], 16: ['ASI / Feat'], 17: ['Brutal Critical'],
-            18: ['Persistent Rage'], 19: ['ASI / Feat'], 20: ['Primal Champion']
-        }
+    'heartbound': {
+        trackers: ['Script Slots', 'Concords', 'Heart Resonance Tracker', 'Heart Strain Tracker'],
+        features: ['Scriptcasting', 'Scriptcasting Focus', 'Component Satchel', 'Known Scripts', 'Core-Touched Effects', 'Mutation Effects'],
+        equip: ['Heart Focus', 'Component Materials']
+    },
+    'peacekeeper': {
+        trackers: ['Marked Targets Tracker'],
+        features: ['Authority Features', 'Command Abilities', 'Tactical Orders', 'Protection Features'],
+        equip: ['Badge/Emblem', 'Restraint Tools', 'Defensive Equipment']
     },
     'scavenger': {
-        name: 'Scavenger', baseClass: 'Rogue', hitDie: 8, primaryAbilities: 'Dexterity', multiclassReq: 'Dexterity 13',
         trackers: ['Salvage Cache', 'Salvage Materials'],
         features: ['Improvised Equipment', 'Relic Finds', 'Scrap Collection'],
-        equip: ['Scavenging Tools', 'Salvage Kit'],
-        progression: {
-            1: ['Expertise', 'Sneak Attack'], 2: ['Cunning Action'], 3: ['Scavenger Archetype'], 4: ['ASI / Feat'], 5: ['Uncanny Dodge'], 6: ['Expertise'],
-            7: ['Evasion'], 8: ['ASI / Feat'], 9: ['Archetype feature'], 10: ['ASI / Feat'], 11: ['Reliable Talent'], 12: ['ASI / Feat'],
-            13: ['Archetype feature'], 14: ['Blindsense'], 15: ['Slippery Mind'], 16: ['ASI / Feat'], 17: ['Archetype feature'], 18: ['Elusive'],
-            19: ['ASI / Feat'], 20: ['Stroke of Luck']
-        }
+        equip: ['Scavenging Tools', 'Salvage Kit', 'Storage Capacity']
+    },
+    'nomad': {
+        trackers: ['Survival Resources', 'Companion Tracker'],
+        features: ['Travel Features', 'Route Knowledge', 'Vehicle/Transport Features', 'Exploration Benefits'],
+        equip: ['Travel Gear', 'Navigation Tools', 'Survival Supplies']
+    },
+    'warden': {
+        trackers: ['Companion Tracker'],
+        features: ['Nature Features', 'Tracking Abilities', 'Survival Techniques', 'Beast/Wildlife Knowledge'],
+        equip: ['Warden Tools', 'Hunting Gear', 'Survival Equipment']
+    },
+    'chronicler': {
+        trackers: ['Inspiration Tracker'],
+        features: ['Recorded Knowledge', 'Lore Archive', 'Story/Memory Features', 'Research Notes'],
+        equip: ['Journal', 'Recording Tools', 'Archive Materials']
+    },
+    'orator': {
+        trackers: ['Script Slots', 'Concords', 'Inspiration Pool', 'Influence Tracker'],
+        features: ['Scriptcasting', 'Scriptcasting Focus', 'Component Satchel', 'Known Scripts', 'Social Abilities'],
+        equip: ['Focus Item', 'Performance/Communication Tools', 'Components']
+    },
+    'scriptweaver': {
+        trackers: ['Script Slots', 'Concords'],
+        features: ['Scriptcasting', 'Scriptcasting Focus', 'Component Satchel', 'Known Scripts', 'Prepared Scripts', 'Script Modifiers'],
+        equip: ['Script Focus', 'Component Materials', 'Script Archive']
+    },
+    'wartouched': {
+        trackers: ['Core Energy Tracker', 'Mutation Tracker', 'Instability Tracker'],
+        features: ['Transformation Abilities', 'Enhanced Physiology Features', 'Core-Touched Effects'],
+        equip: ['Core Relic', 'Mutation Records']
+    },
+    'archivist': {
+        trackers: ['Script Slots', 'Concords'],
+        features: ['Scriptcasting', 'Scriptcasting Focus', 'Component Satchel', 'Known Scripts', 'Prepared Scripts', 'Archive Codex', 'Research Database', 'Relic Records'],
+        equip: ['Archive Tools', 'Data Storage', 'Research Materials']
+    },
+    'fabricator': {
+        trackers: ['Script Slots', 'Concords', 'Construct Tracker', 'Active Creations'],
+        features: ['Scriptcasting', 'Scriptcasting Focus', 'Component Satchel', 'Known Scripts', 'Fabrication Toolkit', 'Schematics', 'Crafting Materials'],
+        equip: ['Fabrication Tools', 'Workshop Supplies', 'Components']
     }
-};
-
-const VOCATION_DATA = VOCATION_CONFIG; 
-
-window.getVocationKey = (nameStr) => {
-    if (!nameStr) return 'warrior';
-    const c = nameStr.toLowerCase();
-    for (const key in VOCATION_CONFIG) {
-        if (c.includes(key) || c.includes(VOCATION_CONFIG[key].name.toLowerCase())) return key;
-    }
-    return 'warrior';
-};
-
-window.getProficiencyBonus = (charLvl) => {
-    const l = parseInt(charLvl) || 1;
-    return l >= 17 ? 6 : l >= 13 ? 5 : l >= 9 ? 4 : l >= 5 ? 3 : 2;
-};
-
-// --- LEVEL UP WIZARD & MILESTONE ENGINE ---
-let wizardSelectedHpGain = 0;
-
-window.grantPartyMilestone = async () => {
-    if (activeRole !== 'dm') return;
-    if (!confirm("Grant a Milestone (+1 Level) to all active adventurers in the party?")) return;
-
-    window.showToast("Granting Party Milestone...");
-    const activePCs = characters.filter(c => c.type === 'PC' && !c.isDeleted);
-    
-    for (const pc of activePCs) {
-        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'characters', pc.id), {
-            levelUpPending: true,
-            pendingLevelsCount: (pc.pendingLevelsCount || 0) + 1
-        });
-    }
-    window.showToast("Party Milestone granted! Adventurers can now level up.");
-};
-
-window.grantSingleMilestone = async () => {
-    if (!activeCharId || activeRole !== 'dm') return;
-    const char = characters.find(c => c.id === activeCharId);
-    if (!char) return;
-
-    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'characters', activeCharId), {
-        levelUpPending: true,
-        pendingLevelsCount: (char.pendingLevelsCount || 0) + 1
-    });
-    window.showToast(`Milestone granted to ${char.name}!`);
-};
-
-window.openLevelUpWizard = () => {
-    const char = characters.find(c => c.id === activeCharId);
-    if (!char || !char.levelUpPending) return;
-
-    wizardSelectedHpGain = 0;
-    document.getElementById('hp-gain-result').classList.add('hidden');
-    document.getElementById('btn-confirm-lvlup').disabled = true;
-    document.getElementById('btn-confirm-lvlup').classList.add('opacity-50', 'cursor-not-allowed');
-
-    const vocSelect = document.getElementById('lvl-wizard-vocation');
-    if (vocSelect) {
-        vocSelect.innerHTML = '';
-        const classes = char.classes || [{ name: char.class || 'Warrior', level: char.level || 1 }];
-        
-        // Add existing vocations
-        classes.forEach(c => {
-            const vKey = window.getVocationKey(c.name);
-            const vData = VOCATION_CONFIG[vKey];
-            vocSelect.innerHTML += `<option value="${vKey}">[Existing] ${vData.name} (Current Lvl: ${c.level})</option>`;
-        });
-
-        // Add multiclass options
-        for (const key in VOCATION_CONFIG) {
-            if (!classes.some(c => window.getVocationKey(c.name) === key)) {
-                const v = VOCATION_CONFIG[key];
-                vocSelect.innerHTML += `<option value="${key}">[New Multiclass] ${v.name} (Req: ${v.multiclassReq})</option>`;
-            }
-        }
-    }
-
-    if (vocSelect) window.previewVocationLevel(vocSelect.value);
-    document.getElementById('level-up-modal')?.classList.remove('hidden');
-};
-
-window.previewVocationLevel = (vKey) => {
-    const char = characters.find(c => c.id === activeCharId);
-    if (!char || !vKey) return;
-
-    const vData = VOCATION_CONFIG[vKey];
-    const classes = char.classes || [{ name: char.class || 'Warrior', level: char.level || 1 }];
-    const existing = classes.find(c => window.getVocationKey(c.name) === vKey);
-    const newVocationLvl = existing ? existing.level + 1 : 1;
-
-    document.getElementById('wizard-hitdie-label').innerText = `Hit Die: d${vData.hitDie}`;
-    document.getElementById('multiclass-req-text').innerText = existing ? `Vocation Level advancing to ${newVocationLvl}.` : `Multiclass Requirement: ${vData.multiclassReq}`;
-
-    const featuresList = vData.progression[newVocationLvl] || ['General Vocation Advancement'];
-    const previewContainer = document.getElementById('wizard-features-preview');
-    if (previewContainer) {
-        previewContainer.innerHTML = featuresList.map(f => `<div class="flex items-center gap-2"><i class="fa-solid fa-star text-gold text-[10px]"></i><span>${f}</span></div>`).join('');
-    }
-};
-
-window.wizardRollHP = () => {
-    const vocKey = document.getElementById('lvl-wizard-vocation').value;
-    const vData = VOCATION_CONFIG[vocKey];
-    const char = characters.find(c => c.id === activeCharId);
-    const conMod = Math.floor(((parseInt(char.con || 10) - 10) / 2));
-    
-    const roll = getRoll(vData.hitDie);
-    wizardSelectedHpGain = Math.max(1, roll + conMod);
-
-    const res = document.getElementById('hp-gain-result');
-    res.innerText = `Rolled ${roll} + ${conMod} (CON) = +${wizardSelectedHpGain} Max HP`;
-    res.classList.remove('hidden');
-
-    document.getElementById('btn-confirm-lvlup').disabled = false;
-    document.getElementById('btn-confirm-lvlup').classList.remove('opacity-50', 'cursor-not-allowed');
-};
-
-window.wizardAverageHP = () => {
-    const vocKey = document.getElementById('lvl-wizard-vocation').value;
-    const vData = VOCATION_CONFIG[vocKey];
-    const char = characters.find(c => c.id === activeCharId);
-    const conMod = Math.floor(((parseInt(char.con || 10) - 10) / 2));
-
-    const avg = Math.floor(vData.hitDie / 2) + 1;
-    wizardSelectedHpGain = Math.max(1, avg + conMod);
-
-    const res = document.getElementById('hp-gain-result');
-    res.innerText = `Average ${avg} + ${conMod} (CON) = +${wizardSelectedHpGain} Max HP`;
-    res.classList.remove('hidden');
-
-    document.getElementById('btn-confirm-lvlup').disabled = false;
-    document.getElementById('btn-confirm-lvlup').classList.remove('opacity-50', 'cursor-not-allowed');
-};
-
-window.confirmLevelUp = async () => {
-    const char = characters.find(c => c.id === activeCharId);
-    if (!char || !wizardSelectedHpGain) return;
-
-    const vocKey = document.getElementById('lvl-wizard-vocation').value;
-    const vData = VOCATION_CONFIG[vocKey];
-
-    let classes = char.classes || [];
-    if (classes.length === 0) {
-        classes = [{ name: char.class || 'Warrior', level: parseInt(char.level) || 1 }];
-    }
-
-    const existingIdx = classes.findIndex(c => window.getVocationKey(c.name) === vocKey);
-    if (existingIdx !== -1) {
-        classes[existingIdx].level += 1;
-    } else {
-        classes.push({ name: vData.name, level: 1 });
-    }
-
-    const totalCharLvl = (parseInt(char.level) || 1) + 1;
-    const classStr = classes.map(c => `${c.name} ${c.level}`).join(' / ');
-    const newProfBonus = window.getProficiencyBonus(totalCharLvl);
-    const newMaxHp = (parseInt(char.hpMax) || 10) + wizardSelectedHpGain;
-
-    const pendingCount = Math.max(0, (char.pendingLevelsCount || 1) - 1);
-
-    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'characters', activeCharId), {
-        level: totalCharLvl,
-        classes: classes,
-        class: classStr,
-        profBonus: newProfBonus,
-        hpMax: newMaxHp,
-        hpCurrent: (parseInt(char.hpCurrent) || 0) + wizardSelectedHpGain,
-        hdCurrent: (parseInt(char.hdCurrent) || 0) + 1,
-        levelUpPending: pendingCount > 0,
-        pendingLevelsCount: pendingCount
-    });
-
-    document.getElementById('level-up-modal')?.classList.add('hidden');
-    window.showToast(`Congratulations! Level Up Complete: Character Level ${totalCharLvl}!`);
 };
 
 window.currentRenderedClass = null;
+
+window.getVocationAliases = () => {
+    const t = campaignSettings?.terms || {};
+    return {
+        'vanguard': (t.class_vanguard || 'vanguard').toLowerCase(),
+        'warrior': (t.class_warrior || 'warrior').toLowerCase(),
+        'peacekeeper': (t.class_peacekeeper || 'peacekeeper').toLowerCase(),
+        'scavenger': (t.class_scavenger || 'scavenger').toLowerCase(),
+        'heartbound': (t.class_heartbound || 'heartbound').toLowerCase(),
+        'nomad': (t.class_nomad || 'nomad').toLowerCase(),
+        'warden': (t.class_warden || 'wilderness warden').toLowerCase(),
+        'chronicler': (t.class_chronicler || 'chronicler').toLowerCase(),
+        'orator': (t.class_orator || 'orator').toLowerCase(),
+        'scriptweaver': (t.class_scriptweaver || 'scriptweaver').toLowerCase(),
+        'wartouched': (t.class_wartouched || 'war-touched').toLowerCase(),
+        'archivist': (t.class_archivist || 'archivist').toLowerCase(),
+        'fabricator': (t.class_fabricator || 'fabricator').toLowerCase()
+    };
+};
+
+window.getHitDie = (className) => {
+    if (!className) return 8; 
+    const c = className.toLowerCase();
+    const aliases = window.getVocationAliases();
+    if (c.includes(aliases['vanguard'])) return 12;
+    if (c.includes(aliases['warrior']) || c.includes(aliases['heartbound']) || c.includes(aliases['nomad'])) return 10;
+    if (c.includes(aliases['scriptweaver']) || c.includes(aliases['archivist'])) return 6;
+    return 8; 
+};
+
+window.autoCalcHP = (force = false) => {
+    const char = characters.find(c => c.id === activeCharId);
+    if (!char) return;
+    
+    const conMod = Math.floor(((parseInt(document.querySelector('[data-key="con"]')?.value) || 10) - 10) / 2);
+    let totalHp = 0;
+    let hdParts = [];
+    
+    let classes = char.classes || [];
+    if (classes.length === 0) {
+        classes = [{name: document.getElementById('class-input')?.value || '', level: parseInt(document.querySelector('[data-key="level"]')?.value) || 1}];
+    }
+    
+    classes.forEach((cls, idx) => {
+        const hd = window.getHitDie(cls.name);
+        const lvl = parseInt(cls.level) || 1;
+        if (lvl > 0) hdParts.push(`${lvl}d${hd}`);
+        
+        for (let i = 0; i < lvl; i++) {
+            if (idx === 0 && i === 0) {
+                totalHp += (hd + conMod); 
+            } else {
+                totalHp += (Math.floor(hd / 2) + 1 + conMod); 
+            }
+        }
+    });
+    
+    const hdString = hdParts.join(' + ') || '1d8';
+    const hdInput = document.querySelector('[data-key="hd"]');
+    
+    if (hdInput && (force || hdInput.value === '1d8' || hdInput.value === '1d10' || hdInput.value === '')) {
+        hdInput.value = hdString;
+    }
+
+    const maxHpInput = document.querySelector('[data-key="hpMax"]');
+    if (maxHpInput) {
+        if (force || parseInt(maxHpInput.value) === 10) {
+            maxHpInput.value = totalHp;
+            const curHpInput = document.querySelector('[data-key="hpCurrent"]');
+            if (curHpInput && (force || parseInt(curHpInput.value) === 10)) {
+                curHpInput.value = totalHp;
+            }
+        }
+    }
+    
+    if (force) {
+        window.saveCurrentCharacter();
+        window.showToast(`Max HP set to ${totalHp} (Average + CON)`);
+    }
+};
+
+window.updateClassSpecifics = () => {
+    const inputVal = (document.getElementById('class-input')?.value || '').toLowerCase();
+    let matchedClasses = [];
+    const aliases = window.getVocationAliases();
+    for (const k in VOCATION_DATA) {
+        if (inputVal.includes(aliases[k])) {
+            matchedClasses.push(k);
+        }
+    }
+
+    const matchKey = matchedClasses.sort().join(',');
+    if (matchKey === window.currentRenderedClass) return;
+    window.currentRenderedClass = matchKey;
+
+    const tCard = document.getElementById('dynamic-class-trackers-card');
+    const tContent = document.getElementById('dynamic-class-trackers-content');
+    const fSection = document.getElementById('dynamic-class-features-section');
+    const fContent = document.getElementById('dynamic-class-features-content');
+    const eSection = document.getElementById('dynamic-class-equip-section');
+    const eContent = document.getElementById('dynamic-class-equip-content');
+
+    if (matchedClasses.length === 0) {
+        if(tCard) tCard.classList.add('hidden');
+        if(fSection) fSection.classList.add('hidden');
+        if(eSection) eSection.classList.add('hidden');
+        return;
+    }
+
+    let allTrackers = [];
+    let allFeatures = [];
+    let allEquip = [];
+
+    matchedClasses.forEach(matchedClass => {
+        const data = VOCATION_DATA[matchedClass];
+        allTrackers = [...new Set([...allTrackers, ...data.trackers])];
+        allFeatures = [...new Set([...allFeatures, ...data.features])];
+        allEquip = [...new Set([...allEquip, ...data.equip])];
+    });
+
+    if (tCard && tContent) {
+        if (allTrackers.length > 0) {
+            tCard.classList.remove('hidden');
+            document.getElementById('dynamic-class-title').innerText = 'VOCATION TRACKERS';
+            tContent.innerHTML = allTrackers.map(t => `
+                <div class="flex justify-between items-center mb-2">
+                    <label class="tiny-label mt-0">${t}</label>
+                    <input type="text" data-key="tracker_${t.replace(/[^a-zA-Z0-9]/g,'_')}" class="w-16 bg-transparent border-b border-dashed border-gray-400 text-center font-bold text-ink font-heading text-lg" placeholder="0">
+                </div>
+            `).join('');
+        } else {
+            tCard.classList.add('hidden');
+        }
+    }
+
+    if (fSection && fContent) {
+        if (allFeatures.length > 0) {
+            fSection.classList.remove('hidden');
+            fContent.innerHTML = allFeatures.map(f => `
+                <div class="trait-section">
+                    <label class="trait-title">${f}</label>
+                    <textarea data-key="feature_${f.replace(/[^a-zA-Z0-9]/g,'_')}" class="trait-input-area font-serif" placeholder="+ Add details..."></textarea>
+                </div>
+            `).join('');
+        } else {
+            fSection.classList.add('hidden');
+        }
+    }
+
+    if (eSection && eContent) {
+        if (allEquip.length > 0) {
+            eSection.classList.remove('hidden');
+            eContent.innerHTML = allEquip.map(e => `
+                <div>
+                    <label class="prof-label mb-1">${e}</label>
+                    <textarea data-key="equip_${e.replace(/[^a-zA-Z0-9]/g,'_')}" class="w-full bg-[rgba(255,255,255,0.4)] border border-[rgba(139,90,43,0.3)] p-2 rounded text-[12px] h-16 font-serif" placeholder="List items..."></textarea>
+                </div>
+            `).join('');
+        } else {
+            eSection.classList.add('hidden');
+        }
+    }
+
+    if (activeCharId && characters) {
+        const char = characters.find(c => c.id === activeCharId);
+        if (char) {
+            const isOwner = (currentUser && char.owner === currentUser.username) || char.owner === 'DM';
+            const isDM = activeRole === 'dm';
+            const canEdit = isOwner || isDM;
+
+            document.querySelectorAll('#dynamic-class-trackers-card [data-key], #dynamic-class-features-section [data-key], #dynamic-class-equip-section [data-key]').forEach(el => {
+                const rawVal = char[el.dataset.key]; 
+                el.value = (rawVal !== undefined && rawVal !== null) ? rawVal : "";
+                el.readOnly = !canEdit;
+                el.disabled = !canEdit;
+            });
+        }
+    }
+};
+
+window.showToast = (m) => { 
+    const t = document.getElementById('toast'); 
+    if(t){ t.textContent=m; t.style.opacity=1; setTimeout(()=>t.style.opacity=0, 4000); } 
+};
+
+const urlParams = new URLSearchParams(window.location.search);
+let appId = urlParams.get('id') || urlParams.get('campaignId');
+
+const isPreviewEnv = window.location.href.startsWith('blob:') || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+if (!appId) {
+    if (isPreviewEnv) {
+        appId = "demo_campaign";
+    } else {
+        try {
+            window.location.href = "../campaigns.html";
+        } catch(e) {}
+    }
+}
+
+window.routeTo = (page) => {
+    try {
+        let targetUrl = page;
+        if (page === 'campaigns.html') {
+            targetUrl = '../campaigns.html';
+        }
+        if (appId && appId !== "demo_campaign") {
+            if (page !== 'campaigns.html') {
+                targetUrl += `?id=${appId}`;
+            }
+        }
+        window.location.href = targetUrl;
+    } catch (e) {
+        window.showToast("Navigation blocked in preview.");
+    }
+};
+
+let characters = [], parties = [], currentUser = null, activeCharId = null, activeRole = 'player', rollMode = 'normal';
+let autoSaveTimer = null, lastGeneratedScores = [], sessionRerollUsed = false;
+let activeManagePartyId = null, activeMoveLvl = null, editingMoveIndex = null;
+let campaignSettings = { terms: {} };
+
+const SHEET_LABELS = {
+    class: 'Class', level: 'Level', party: 'Party', race: 'Race', archetype: 'Archetype', belief: 'Belief',
+    insp: 'Insp', abilities: 'Abilities', prof: 'Proficiency', saves: 'Saves', skills: 'Skills', ac: 'AC', init: 'INIT', speed: 'Speed',
+    hp: 'Health Points', hd: 'HD', temphp: 'Temporary Hit Points', death: 'Death & Coma', stress: 'Stress', trauma: 'Trauma',
+    actions: 'Actions', attacks: 'Attacks & Scriptcasting', defenses: 'Defenses', conditions: 'Conditions & Exhaustion', proficiencies: 'Proficiencies & Training',
+    inventory: 'Inventory', currency: 'Currency', equipment: 'Equipment', traits: 'Traits', personality: 'Personality Traits', ideals: 'Ideals', bonds: 'Bonds', flaws: 'Flaws',
+    background: 'Background', characteristics: 'Characteristics & Appearance', companion: 'Companion', notes: 'Notes'
+};
+
+const STATS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+const SKILLS = [
+    {n:'Acrobatics', s:'dex'},{n:'Animal Handling', s:'wis'},{n:'Arcana', s:'int'},
+    {n:'Athletics', s:'str'},{n:'Deception', s:'cha'},{n:'History', s:'int'},
+    {n:'Insight', s:'wis'},{n:'Intimidation', s:'cha'},{n:'Investigation', s:'int'},
+    {n:'Medicine', s:'wis'},{n:'Nature', s:'int'},{n:'Perception', s:'wis'},
+    {n:'Performance', s:'cha'},{n:'Persuasion', s:'cha'},{n:'Belief', s:'int'},
+    {n:'Sleight of Hand', s:'dex'},{n:'Stealth', s:'dex'},{n:'Survival', s:'wis'}
+];
+
+const COMA_COMPLICATIONS = [
+    "Memory loss (temporary or permanent)",
+    "Mutation / Core scarring",
+    "Reduced max HP until treated",
+    "Visions of the Eternal Heart",
+    "Faction interest or unwanted attention",
+    "Changed personality trait or belief",
+    "Assisted Recovery"
+];
+
+const getRoll = (sides) => Math.floor(Math.random() * sides) + 1;
+
+// --- EXHAUSTION CONTROLS ---
+window.adjustExhaustion = async (amount, reset = false) => {
+    const char = characters.find(c => c.id === activeCharId);
+    if (!char) return;
+
+    let currentLvl = parseInt(char.exhaustion) || 0;
+    let newLvl = reset ? 0 : Math.max(0, Math.min(6, currentLvl + amount));
+
+    const hiddenInput = document.querySelector('[data-key="exhaustion"]');
+    if (hiddenInput) hiddenInput.value = newLvl;
+
+    const updates = { exhaustion: newLvl };
+
+    if (newLvl === 6) {
+        updates.status = 'dead';
+        updates.hpCurrent = 0;
+        window.showToast("Exhaustion Level 6 reached: The character has perished.");
+    }
+
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'characters', activeCharId), updates);
+    window.renderExhaustionUI(newLvl);
+};
+
+window.renderExhaustionUI = (lvl) => {
+    const display = document.getElementById('exhaustion-level-display');
+    if (display) display.innerText = lvl;
+
+    for (let i = 1; i <= 6; i++) {
+        const row = document.getElementById(`ex-lvl-${i}`);
+        if (!row) continue;
+
+        const statusTag = row.querySelector('.ex-status');
+
+        if (lvl >= i) {
+            row.className = i === 6 
+                ? "p-1.5 rounded border border-red-900 bg-blood text-parchment flex items-center justify-between shadow-md"
+                : "p-1.5 rounded border border-blood bg-blood/10 text-blood flex items-center justify-between font-black";
+            if (statusTag) {
+                statusTag.innerText = "ACTIVE";
+                statusTag.className = "ex-status font-black text-[9px] text-blood";
+                if (i === 6) statusTag.className = "ex-status font-black text-[9px] text-parchment";
+            }
+        } else {
+            row.className = "p-1.5 rounded border border-gray-400/30 text-gray-500 flex items-center justify-between";
+            if (statusTag) {
+                statusTag.innerText = "INACTIVE";
+                statusTag.className = "ex-status font-black text-[9px] text-gray-400";
+            }
+        }
+    }
+};
+
+// --- STRESS THRESHOLD & DM-ONLY TRAUMA LOGIC ---
+window.checkStressThreshold = (val) => {
+    const curStress = parseInt(val) || 0;
+    const thresholdInput = document.querySelector('[data-key="stressThreshold"]');
+    const threshold = parseInt(thresholdInput?.value) || 10;
+    
+    const alertBanner = document.getElementById('stress-threshold-alert');
+
+    if (curStress >= threshold) {
+        if (alertBanner) alertBanner.classList.remove('hidden');
+        window.showToast(`⚡ Stress threshold (${threshold}) reached! Awaiting DM/Admin to assign Trauma or Scar.`);
+    } else {
+        if (alertBanner) alertBanner.classList.add('hidden');
+    }
+};
+
+window.openDmTraumaModal = () => {
+    if (activeRole !== 'dm') {
+        window.showToast("Only the Dungeon Master or Admin can assign Scars & Trauma.");
+        return;
+    }
+    document.getElementById('dt-what').value = '';
+    document.getElementById('dt-why').value = '';
+    document.getElementById('dt-how').value = '';
+    document.getElementById('dt-benefit').value = '';
+    document.getElementById('dt-complication').value = '';
+    document.getElementById('dm-trauma-modal')?.classList.remove('hidden');
+};
+
+window.saveDmTrauma = async () => {
+    const char = characters.find(c => c.id === activeCharId);
+    if (!char) return;
+
+    const what = document.getElementById('dt-what').value.trim();
+    const why = document.getElementById('dt-why').value.trim();
+    const how = document.getElementById('dt-how').value.trim();
+    const benefit = document.getElementById('dt-benefit').value.trim();
+    const complication = document.getElementById('dt-complication').value.trim();
+
+    if (!what) return window.showToast("Please write what happened.");
+
+    const existingRecords = char.traumaRecords || [];
+    const newRecord = {
+        what,
+        why,
+        how,
+        benefit,
+        complication,
+        assignedBy: currentUser.username,
+        timestamp: Date.now()
+    };
+
+    const updatedRecords = [newRecord, ...existingRecords];
+
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'characters', activeCharId), {
+        traumaRecords: updatedRecords,
+        currentStress: 0
+    });
+
+    document.getElementById('dm-trauma-modal')?.classList.add('hidden');
+    document.getElementById('stress-threshold-alert')?.classList.add('hidden');
+    window.showToast("Trauma/Scar assigned! Stress reset to 0.");
+};
+
+window.renderTraumaListUI = (records = []) => {
+    const container = document.getElementById('trauma-records-list');
+    const countBadge = document.getElementById('trauma-count-badge');
+
+    if (countBadge) {
+        countBadge.innerText = `${records.length} ${records.length === 1 ? 'Record' : 'Records'}`;
+    }
+
+    if (!container) return;
+
+    if (records.length === 0) {
+        container.innerHTML = `<p class="text-xs text-gray-500 italic text-center py-2">No scars or traumas recorded yet.</p>`;
+        return;
+    }
+
+    container.innerHTML = records.map((r, i) => `
+        <div class="bg-[rgba(255,255,255,0.4)] border border-[rgba(139,90,43,0.3)] p-3 rounded space-y-2 text-xs font-serif shadow-sm">
+            <div class="flex justify-between items-start border-b border-[rgba(139,90,43,0.2)] pb-1">
+                <span class="font-heading font-black text-blood uppercase text-[10px]">Record #${records.length - i}</span>
+                <span class="text-[9px] text-gray-500 italic">Assigned by ${r.assignedBy || 'DM'}</span>
+            </div>
+            <div><strong class="text-blood block tiny-label">What Happened?</strong> <span class="italic text-ink">${r.what}</span></div>
+            ${r.why ? `<div><strong class="text-555 block tiny-label">Why / Cause:</strong> <span class="italic text-ink">${r.why}</span></div>` : ''}
+            ${r.how ? `<div><strong class="text-555 block tiny-label">How / Trigger:</strong> <span class="italic text-ink">${r.how}</span></div>` : ''}
+            ${r.benefit ? `<div><strong class="text-green-900 block tiny-label">Situational Benefit:</strong> <span class="italic text-green-900 font-semibold">${r.benefit}</span></div>` : ''}
+            ${r.complication ? `<div><strong class="text-blood block tiny-label">Complication / Narrative Hook:</strong> <span class="italic text-blood font-semibold">${r.complication}</span></div>` : ''}
+        </div>
+    `).join('');
+};
 
 const DEFAULT_MODULES = {
     mod_skills: true, mod_saves: true, mod_insp: true, mod_death: true,
@@ -525,6 +670,18 @@ function renderMedia(src, className, style = "") {
 window.openPartyModal = () => { document.getElementById('party-modal')?.classList.remove('hidden'); };
 window.createParty = async () => { const n = document.getElementById('party-name-input'); if (!n || !n.value) return; await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'parties'), {name: n.value, createdAt: Date.now()}); document.getElementById('party-modal').classList.add('hidden'); n.value = ''; window.showToast("Party Formed"); };
 
+window.openCompanionSheet = (e, petId) => {
+    e.stopPropagation();
+    try {
+        let targetUrl = `companions.html?openSheet=${petId}`;
+        if (appId && appId !== "demo_campaign") {
+            targetUrl += `&id=${appId}`;
+        }
+        window.location.href = targetUrl;
+    } catch (err) {
+        window.showToast("Redirects disabled in preview window.");
+    }
+};
 window.renderDashboard = () => {
     const pcC = document.getElementById('party-view-container');
     if (!pcC) return; 
@@ -1587,7 +1744,6 @@ onAuthStateChanged(auth, async (u) => {
         document.getElementById('create-actions')?.classList.remove('hidden');
         document.getElementById('btn-campaign-settings')?.classList.toggle('hidden', !isDM);
         
-        // Show/hide DM Milestone Party Level Up Bar
         document.getElementById('dm-party-levelup-bar')?.classList.toggle('hidden', !isDM);
 
         document.getElementById('initial-loading').classList.add('hidden');
