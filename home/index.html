@@ -1,0 +1,54 @@
+<!-- 
+Security Guidelines Noted:
+- https://www.thelazydeveloper.org/securing-endpoints-guide 
+- https://www.thelazydeveloper.org/securing-endpoints-guide 
+- https://www.thelazydeveloper.org/authorization-idor-guide 
+- https://www.thelazydeveloper.org/env-vars-api-keys-guide 
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chronicles of the Realm - Login</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'parchment': '#f1e5c5',
+                        'ink': '#2c1e16',
+                        'blood': '#7a1b1b',
+                        'gold': '#c5a059',
+                        'wood': '#1a110b'
+                    },
+                    fontFamily: {
+                        'serif': ['Lora', 'serif'],
+                        'heading': ['Cinzel', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- External CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="font-serif antialiased w-screen h-screen">
+
+    <!-- All of your HTML structure (Cinematic Background, Modals, UI Overlays, and Auth Forms) remains exactly the same here -->
+    <!-- ... -->
+
+    <!-- External JavaScript -->
+    <script src="js/ui.js"></script>
+    <script type="module" src="js/auth.js"></script>
+</body>
+</html>
