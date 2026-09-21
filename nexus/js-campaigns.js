@@ -147,7 +147,10 @@ function createCampaignCard(camp, isMine) {
     
     d.onclick = () => {
         if (isMine || adminModeActive) {
-            try { window.location.href = `characters.html?id=${camp.id}`; } 
+            try { 
+                // Redirect to the campaign subfolder
+                window.location.href = `campaign/characters.html?id=${camp.id}`; 
+            } 
             catch(e) { window.showToast("Redirects disabled in preview window."); }
         } else if (currentUser.role === 'player' && camp.visibility === 'public') {
             window.joinPublicCampaign(camp.id, camp.name);
@@ -1770,7 +1773,10 @@ window.joinByCode = async () => {
         window.showToast(`Joined ${camp.data().name}!`);
         
         setTimeout(() => {
-            try { window.location.href = `characters.html?id=${camp.id}`; } 
+            try { 
+                // Redirect to the campaign subfolder
+                window.location.href = `campaign/characters.html?id=${camp.id}`; 
+            } 
             catch(e) { window.showToast("Redirect disabled in preview."); }
         }, 1000);
 
