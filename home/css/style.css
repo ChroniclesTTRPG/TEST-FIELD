@@ -1,8 +1,175 @@
 body {
-    background-color: #0a0604; /* Dark abyss */
-    color: #2c1e16;
-    margin: 0;
-    overflow: hidden; /* Lock scrolling for cinematic feel */
+background-color: #0a0604; /* Dark abyss /
+color: #2c1e16;
+margin: 0;
+overflow: hidden; / Lock scrolling for cinematic feel */
 }
+
+/* --- Cinematic Background Elements --- */
+.ambient-fog {
+position: absolute;
+inset: 0;
+background: radial-gradient(circle at 60% 30%, rgba(197, 160, 89, 0.08) 0%, transparent 60%),
+radial-gradient(circle at 50% 80%, rgba(122, 27, 27, 0.1) 0%, transparent 50%);
+pointer-events: none;
+z-index: 2;
+}
+
+.scanlines {
+position: absolute;
+inset: 0;
+background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%);
+background-size: 100% 4px;
+pointer-events: none;
+z-index: 5;
+opacity: 0.35;
+}
+
+.vignette {
+position: absolute;
+inset: 0;
+background: radial-gradient(circle at 50% 50%, transparent 20%, rgba(10, 6, 4, 0.95) 100%);
+pointer-events: none;
+z-index: 4;
+}
+
+.pattern-overlay {
+position: absolute;
+inset: 0;
+background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 20.5V18H0v-2h20v-2H0v-2h20v-2H0V8h20V6H0V4h20V2H0V0h22v20h2V0h2v20h2V0h2v20h2V0h2v20h2V0h2v20h2v2H20v-1.5zM0 20h2v20H0V20zm4 0h2v20H4V20zm4 0h2v20h-2V20zm4 0h2v20h-2V20zm4 4h20v2H20v-2zm0 4h20v2H20v-2zm0 4h20v2H20v-2zm0 4h20v2H20v-2z' fill='%23c5a059' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+z-index: 3;
+pointer-events: none;
+}
+
+/* --- Campfire & Embers --- */
+@keyframes fireGlow {
+0%, 100% { filter: drop-shadow(0 0 10px rgba(197, 160, 89, 0.5)) saturate(1.2); transform: scale(1); }
+50% { filter: drop-shadow(0 0 20px rgba(122, 27, 27, 0.8)) saturate(1.5); transform: scale(1.05); }
+}
+.campfire-core {
+animation: fireGlow 2s infinite ease-in-out;
+}
+
+.ember {
+position: absolute;
+bottom: 12%;
+width: 4px;
+height: 4px;
+background: #c5a059;
+border-radius: 50%;
+box-shadow: 0 0 8px 2px #7a1b1b;
+opacity: 0;
+animation: floatUp 4s infinite ease-in;
+z-index: 3;
+}
+@keyframes floatUp {
+0% { transform: translateY(0) scale(1); opacity: 1; }
+100% { transform: translateY(-250px) translateX(30px) scale(0.3); opacity: 0; }
+}
+.ember:nth-child(1) { right: 39%; animation-duration: 3s; animation-delay: 0s; }
+.ember:nth-child(2) { right: 41%; animation-duration: 4.5s; animation-delay: 1.2s; }
+.ember:nth-child(3) { right: 38%; animation-duration: 3.5s; animation-delay: 2.1s; }
+.ember:nth-child(4) { right: 40.5%; animation-duration: 5s; animation-delay: 0.5s; }
+.ember:nth-child(5) { right: 39.5%; animation-duration: 3.8s; animation-delay: 3s; }
+
+/* --- Title Glow --- */
+.intro-title-glow {
+text-shadow: 0 0 20px rgba(197, 160, 89, 0.4), 0 0 40px rgba(122, 27, 27, 0.6);
+letter-spacing: 0.1em;
+}
+
+/* --- Existing Parchment Theme --- */
+.parchment-bg {
+background-color: #f1e5c5;
+background-image:
+radial-gradient(circle at center, transparent 0%, rgba(200, 170, 120, 0.3) 100%),
+url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.05' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+box-shadow: inset 0 0 40px rgba(139, 90, 43, 0.4), 0 10px 40px rgba(0,0,0,0.8);
+border: 2px solid #c5a059;
+border-radius: 4px;
+}
+
+.fantasy-btn {
+background: linear-gradient(to bottom, #8a2b2b, #5a1111);
+color: #f1e5c5;
+border: 2px solid #c5a059;
+font-family: 'Cinzel', serif;
+text-transform: uppercase;
+letter-spacing: 1px;
+transition: all 0.2s ease;
+box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 1px 3px rgba(255,255,255,0.2);
+text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+
+.fantasy-btn:hover {
+background: linear-gradient(to bottom, #a33232, #7a1b1b);
+transform: translateY(-2px);
+box-shadow: 0 6px 12px rgba(0,0,0,0.6);
+border-color: #e8cd87;
+}
+
+.fantasy-btn-intro {
+background: transparent;
+color: #c5a059;
+border: 2px solid #c5a059;
+font-family: 'Cinzel', serif;
+text-transform: uppercase;
+letter-spacing: 3px;
+transition: all 0.4s ease;
+box-shadow: 0 0 15px rgba(197, 160, 89, 0.2), inset 0 0 10px rgba(197, 160, 89, 0.1);
+text-shadow: 0 0 8px rgba(197, 160, 89, 0.5);
+backdrop-filter: blur(4px);
+}
+
+.fantasy-btn-intro:hover {
+background: rgba(122, 27, 27, 0.4);
+color: #f1e5c5;
+border-color: #f1e5c5;
+transform: scale(1.05);
+box-shadow: 0 0 25px rgba(122, 27, 27, 0.8), inset 0 0 15px rgba(122, 27, 27, 0.5);
+}
+
+.fantasy-input {
+background-color: rgba(255, 255, 255, 0.4);
+border: 1px solid #8b5a2b;
+border-bottom: 2px solid #c5a059;
+color: #2c1e16;
+font-family: 'Lora', serif;
+transition: all 0.3s;
+}
+
+.fantasy-input:focus {
+outline: none;
+background-color: rgba(255, 255, 255, 0.7);
+border-bottom-color: #8a2b2b;
+}
+
+.ornamental-hr {
+border: 0;
+height: 2px;
+background-image: linear-gradient(to right, rgba(197, 160, 89, 0), rgba(197, 160, 89, 0.8), rgba(197, 160, 89, 0));
+margin: 20px 0;
+position: relative;
+}
+
+.ornamental-hr::after {
+content: "♦";
+position: absolute;
+top: -10px;
+left: 50%;
+transform: translateX(-50%);
+color: #c5a059;
+font-size: 16px;
+}
+
+/* --- Animations --- */
+.fade-in { animation: fadeIn 1s ease-in forwards; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.fade-out { animation: fadeOut 0.8s ease-out forwards; }
+@keyframes fadeOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(1.05); visibility: hidden; pointer-events: none; } }
+
+.slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+@keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
 
 /* Paste the rest of your custom CSS here... */
