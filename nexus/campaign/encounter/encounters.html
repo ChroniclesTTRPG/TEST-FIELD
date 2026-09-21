@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chronicles - Encounters</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Lora:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'parchment': '#f1e5c5',
+                        'ink': '#2c1e16',
+                        'blood': '#7a1b1b',
+                        'gold': '#c5a059',
+                        'wood': '#1a110b',
+                        'stone': '#e8e0cd'
+                    },
+                    fontFamily: {
+                        'serif': ['Lora', 'serif'],
+                        'heading': ['Cinzel', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- External Stylesheet -->
+    <link rel="stylesheet" href="./css/encounter.css">
+</head>
+<body class="min-h-screen">
+
+    <div id="toast" class="toast">Message</div>
+    <div id="sync-indicator" class="fixed top-4 right-4 bg-green-800 text-parchment px-3 py-1 border border-green-600 rounded text-[10px] font-black uppercase tracking-widest opacity-0 pointer-events-none transition-opacity shadow-lg font-heading">Cloud Synced</div>
+
+    <div id="critical-fail-overlay">
+        <div class="font-serif">
+            <div class="text-[12rem] leading-none mb-4 text-blood font-black drop-shadow-[0_0_30px_rgba(122,27,27,0.5)]">1</div>
+            <div class="text-4xl tracking-[0.2em] font-black uppercase text-parchment font-heading drop-shadow-lg">Critical Fail</div>
+        </div>
+    </div>
+    <div id="critical-success-overlay">
+        <div class="font-serif">
+            <div class="text-[12rem] leading-none mb-4 text-gold font-black drop-shadow-[0_0_50px_rgba(197,160,89,0.6)] animate-bounce">20</div>
+            <div class="text-4xl tracking-[0.2em] font-black uppercase text-parchment font-heading drop-shadow-lg">Critical Success</div>
+        </div>
+    </div>
+    <canvas id="fireworks-canvas"></canvas>
+
+    <div id="initial-loading" class="flex flex-col items-center justify-center h-screen fade-in w-full text-center">
+        <i class="fa-solid fa-compass fa-spin text-6xl text-gold mb-6"></i>
+        <h2 class="font-heading text-2xl text-parchment animate-pulse">Entering the Realm...</h2>
+    </div>
+
+    <!-- MAIN DASHBOARD -->
+    <div id="dashboard-screen" class="min-h-screen dashboard-bg p-4 md:p-8 hidden w-full">
+        <div class="max-w-6xl mx-auto">
+            <header class="flex flex-col items-center md:items-start md:flex-row justify-between mb-8 border-b border-gray-700 pb-6 gap-6 relative">
+                <div class="absolute -bottom-1.5 left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-gray-700 to-transparent opacity-50"></div>
+                
+                <div class="text-center md:text-left w-full md:w-auto">
+                    <h1 id="main-campaign-title" class="text-4xl md:text-5xl text-gray-400 font-bold mb-1 font-heading tracking-tight leading-none drop-shadow-md">Chronicles</h1>
+                    <div class="flex flex-col md:flex-row items-center gap-3 mt-2">
+                        <p class="text-gray-500 text-xs uppercase tracking-[0.2em] font-bold font-heading">Campaign Management Suite</p>
+                        <div class="bg-black bg-opacity-60 border border-gray-700 px-3 py-1 rounded flex items-center gap-2 shadow-inner">
+                            <span class="w-1.5 h-1.5 rounded-full bg-gray-500"></span>
+                            <span id="user-display-name" class="text-[10px] font-black text-gray-400 uppercase tracking-widest font-heading">Guest</span>
+                            <button id="btn-campaign-settings" onclick="window.openSettingsModal()" class="hidden text-[10px] text-gold hover:text-white font-black ml-2 border-l border-gray-600 pl-3 transition-colors" title="Campaign Terminology Settings"><i class="fa-solid fa-gear"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col items-center md:items-end gap-4 w-full md:w-auto mt-4 md:mt-0">
+                    <div class="flex items-center gap-4">
+                        <button onclick="try { window.location.href='../../campaigns.html' } catch(e) { window.showToast('Redirects disabled in preview window.') }" class="fantasy-btn-alt px-4 py-1.5 text-xs rounded"><i class="fa-solid fa-arrow-left mr-2"></i>Nexus</button>
+                    </div>
+
+                    <nav id="main-nav" class="flex gap-4 md:gap-6 items-center w-full overflow-x-auto scrollbar-hide pb-2 px-2 md:px-0 md:pb-0 justify-start md:justify-end mt-2">
+                        <a href="../../characters.html" class="nav-link dyn-term" data-term="nav_party">Party</a>
+                        <a href="encounter.html" id="nav-encounters" class="nav-link active !text-blood dyn-term" data-term="nav_encounters">Encounters</a>
+                        <a href="../../npcs.html" class="nav-link dyn-term" data-term="nav_npcs">NPCs</a>
+                        <a href="../../companions.html" class="nav-link dyn-term" data-term="nav_beasts">Companions</a>
+                        <a href="../../backpack.html" class="nav-link dyn-term" data-term="nav_backpack">Backpack</a>
+                        <a href="../../handbook.html" class="nav-link dyn-term" data-term="nav_handbook">Handbook</a>
+                        <a href="../../graveyard.html" class="nav-link dyn-term" data-term="nav_graveyard">Graveyard</a>
+                    </nav>
+                </div>
+            </header>
+
+            <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                <h2 id="view-title" class="text-xl md:text-2xl font-heading text-gray-500 uppercase font-bold tracking-widest drop-shadow">Encounters & Enemies</h2>
+                <div id="create-actions" class="flex gap-2 w-full md:w-auto hidden">
+                    <button id="btn-create-npc" onclick="window.openEncounterSpawner()" class="flex-1 md:flex-none fantasy-btn-alt !border-blood !text-blood hover:!text-parchment px-6 py-2.5 rounded text-xs md:text-sm shadow hidden">New Encounter</button>
+                </div>
+            </div>
+
+            <div id="view-content" class="space-y-8">
+                <!-- INITIATIVE TRACKER SECTION -->
+                <div id="initiative-tracker-view">
+                    <div class="bg-black bg-opacity-70 border border-gray-700 rounded-lg p-4 md:p-6 shadow-2xl relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blood via-gold to-blood opacity-70"></div>
+                        
+                        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-6 gap-4 border-b border-gray-700 pb-5">
+                            <div>
+                                <h3 class="font-heading text-2xl md:text-3xl text-gray-300 font-bold uppercase tracking-widest drop-shadow mb-1">Combat Tracker</h3>
+                                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] flex items-center gap-2 font-heading">
+                                    <span class="w-2 h-2 rounded-full bg-blood animate-pulse"></span>
+                                    Initiative & Turn Order
+                                </p>
+                            </div>
+                            
+                            <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                                <div class="flex items-center bg-black/60 border border-gray-600 rounded p-1 shadow-inner flex-grow lg:flex-grow-0">
+                                    <button onclick="window.updateRound(-1)" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gold transition-all text-xl font-black rounded hover:bg-gray-800">-</button>
+                                    <div class="flex flex-col items-center px-4 min-w-[60px]">
+                                        <span class="text-[8px] font-black uppercase text-gray-500 tracking-[0.1em] leading-none mb-0.5 font-heading">Round</span>
+                                        <span id="current-round-display" class="text-lg font-black text-gold drop-shadow-[0_0_8px_rgba(197,160,89,0.4)] leading-none font-serif">1</span>
+                                    </div>
+                                    <button onclick="window.updateRound(1)" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gold transition-all text-xl font-black rounded hover:bg-gray-800">+</button>
+                                </div>
+
+                                <div class="flex gap-2">
+                                    <button onclick="window.openCombatSelectionModal()" class="text-[10px] font-bold uppercase text-gray-400 bg-gray-800 hover:bg-gray-700 px-4 py-2.5 rounded border border-gray-600 transition-colors font-heading">Start Combat</button>
+                                    <button onclick="window.clearAllInitiatives()" class="text-[10px] font-bold uppercase text-blood bg-black hover:bg-gray-900 px-4 py-2.5 rounded border border-blood transition-colors font-heading">Reset Combat</button>
+                                </div>
+
+                                <button onclick="window.advanceTurn()" class="ml-auto lg:ml-2 fantasy-btn px-6 py-2.5 rounded font-bold uppercase text-xs tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2">
+                                    Next Turn <span class="text-[10px]">➔</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- ENGAGEMENT RULES INFO -->
+                        <div class="flex flex-col md:flex-row gap-4 mb-6">
+                            <div class="flex-grow bg-black/50 border border-gray-700 rounded p-3 text-[10px] text-gray-400 flex items-start gap-3 shadow-inner font-serif italic">
+                                <span class="text-gold text-base leading-none mt-0.5 not-italic">ⓘ</span>
+                                <div>
+                                    <strong class="text-gold uppercase tracking-widest block mb-1 not-italic font-heading text-[9px]">Engagement Logic</strong>
+                                    Only the DM chooses when an encounter gets close to a Player, NPC, Beast, or Enemy to attack. The DM will manually engage that entity to activate their turn.
+                                </div>
+                            </div>
+                            <button onclick="document.getElementById('op-attack-modal').classList.remove('hidden')" class="flex-shrink-0 bg-gray-900 hover:bg-gray-800 border border-gray-600 text-gray-300 px-4 py-3 rounded text-[10px] font-bold uppercase tracking-widest transition-colors shadow flex items-center justify-center gap-2 font-heading">
+                                <span class="text-sm">⚔️</span> Opportunity Attack
+                            </button>
+                        </div>
+
+                        <div id="init-list" class="space-y-3">
+                            <!-- Initiative items populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <div id="encounters-view-container" class="space-y-8"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHEET SCREEN -->
+    <div id="sheet-screen" class="hidden-view">
+        <nav class="sticky top-0 z-[60] bg-[#1a110b] p-2 shadow-2xl border-b border-gray-800 font-heading">
+            <div class="max-w-6xl mx-auto flex justify-between items-center text-gray-300 px-4">
+                <button onclick="window.closeSheet()" class="text-gold hover:text-white font-bold flex items-center gap-2 text-xs uppercase tracking-widest"><span>←</span> Depart</button>
+                <div id="sheet-readonly-badge" class="hidden bg-gray-800 text-gray-400 px-4 py-1 rounded text-[10px] font-black uppercase tracking-widest border border-gray-600">VIEW ONLY</div>
+                <div class="flex items-center gap-4">
+                    <span id="sheet-type-badge" class="bg-blood text-parchment px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest border border-gold">PC</span>
+                    <div class="flex items-center gap-2">
+                        <button id="claim-char-btn" onclick="window.claimCharacter()" class="fantasy-btn px-4 py-1 rounded text-[10px] font-black uppercase tracking-widest hidden animate-pulse">Claim</button>
+                        <button id="sync-btn" onclick="window.saveCurrentCharacter(true)" class="fantasy-btn-alt px-4 py-1 rounded text-[10px] font-black uppercase tracking-widest">Sync</button>
+                        <button id="delete-char-btn" onclick="window.triggerDeleteModal()" class="bg-transparent border border-blood text-blood hover:bg-blood hover:text-parchment px-3 py-1 rounded text-[10px] font-black uppercase transition-colors">Manage</button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div id="sheet-turn-banner" class="hidden bg-ink py-4 px-4 shadow-[0_10px_30px_rgba(0,0,0,0.8)] border-b-2 border-gold relative z-[55] flex flex-col md:flex-row items-center justify-between gap-4 font-heading">
+            <div class="hidden md:block md:w-1/3"></div>
+            <div class="w-full md:w-1/3 text-center">
+                <span id="turn-banner-text" class="text-2xl md:text-3xl font-bold uppercase tracking-widest text-gold drop-shadow-[0_0_15px_rgba(197,160,89,0.6)] animate-pulse">⚔️ YOUR TURN ⚔️</span>
+            </div>
+            <div class="turn-controls w-full md:w-1/3 flex justify-center md:justify-end gap-3">
+                <button onclick="window.holdTurn()" class="fantasy-btn-alt px-4 py-2 rounded text-[10px] font-bold uppercase tracking-widest shadow">🛡️ Ready Act</button>
+                <button onclick="window.advanceTurn()" class="fantasy-btn px-6 py-2 rounded text-[10px] font-bold uppercase tracking-widest shadow">End Turn ➔</button>
+            </div>
+        </div>
+        <div id="sheet-held-banner" class="hidden bg-gray-900 py-4 px-4 shadow-[0_10px_30px_rgba(0,0,0,0.8)] border-b-2 border-blue-500 relative z-[55] flex flex-col md:flex-row items-center justify-between gap-4 font-heading">
+            <div class="hidden md:block md:w-1/3"></div>
+            <div class="w-full md:w-1/3 text-center">
+                <span class="text-xl md:text-2xl font-bold uppercase tracking-widest text-blue-400 drop-shadow-[0_0_15px_rgba(59,130,246,0.6)]">🛡️ READY ACTION 🛡️</span>
+                <span id="held-details-text" class="text-[10px] block text-blue-200 mt-1 font-bold uppercase tracking-wider leading-tight font-serif italic">Waiting for trigger...</span>
+            </div>
+            <div class="turn-controls w-full md:w-1/3 flex justify-center md:justify-end gap-3">
+                <button onclick="window.cancelHold()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-6 py-2 rounded text-[10px] font-bold uppercase tracking-widest transition-all border border-gray-600 shadow">Cancel Ready</button>
+            </div>
+        </div>
+
+        <div id="sheet-container" class="parchment-paper max-w-6xl">
+            <div class="p-4 md:p-8">
+                <div id="dm-oversight-panel" class="dm-panel hidden-view !bg-[#1c1c1c] !border-[#f59e0b] !rounded-xl shadow-xl">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+                        <div class="flex-grow w-full md:w-auto">
+                            <h4 class="text-xs font-black uppercase text-[#f59e0b] mb-2 font-heading tracking-wider">DM Whisper</h4>
+                            <div class="flex gap-3 w-full">
+                                <input type="text" id="dm-whisper-input" class="bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg p-2.5 text-white font-bold text-sm font-serif flex-grow focus:outline-none focus:border-[#f59e0b] transition-colors placeholder-gray-600" placeholder="Secret note...">
+                                <button onclick="window.sendDmWhisper()" class="bg-[#a855f7] hover:bg-[#9333ea] text-white px-6 py-2.5 rounded-lg text-xs font-black uppercase shadow transition-colors font-heading tracking-wider">Send</button>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-start md:items-end gap-2 shrink-0">
+                            <h4 class="text-xs font-black uppercase text-[#f59e0b] font-heading tracking-wider mb-0.5">Status</h4>
+                            <div class="flex gap-2 font-heading">
+                                <button onclick="window.updateCharStatus('alive')" class="bg-[#166534] hover:bg-[#15803d] text-white px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow transition-colors">Alive</button>
+                                <button onclick="window.updateCharStatus('coma')" class="bg-[#92400e] hover:bg-[#b45309] text-white px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow transition-colors">Coma</button>
+                                <button onclick="window.updateCharStatus('dead')" class="bg-[#475569] hover:bg-[#64748b] text-white px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow transition-colors">Death</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="pc-sheet-layout">
+                    <header class="sheet-card mb-8">
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                            <div class="lg:col-span-4 flex flex-col gap-4">
+                                <div><input type="text" id="pc-name-field" class="text-4xl font-bold font-heading w-full mb-1 text-blood drop-shadow-sm !border-b-2 !border-gold" placeholder="Character Name" data-key="name"><label class="tiny-label">Character Name</label></div>
+                            </div>
+                            <div class="lg:col-span-8 grid grid-cols-2 md:grid-cols-3 gap-4">
+                                <div>
+                                    <div class="flex justify-between items-center pr-1">
+                                        <input type="text" data-key="class" id="class-input" placeholder="Fighter" oninput="window.calcMods(); window.updateClassSpecifics();">
+                                        <div id="npc-type-selectors" class="hidden flex gap-1 font-heading">
+                                            <button onclick="window.setNpcCategory('Enemy')" class="text-[8px] font-bold bg-blood text-parchment border border-gold px-1.5 py-0.5 rounded">E</button>
+                                            <button onclick="window.setNpcCategory('Beast')" class="text-[8px] font-bold bg-green-800 text-parchment border border-gold px-1.5 py-0.5 rounded">B</button>
+                                            <button onclick="window.setNpcCategory('Npc')" class="text-[8px] font-bold bg-blue-800 text-parchment border border-gold px-1.5 py-0.5 rounded">N</button>
+                                        </div>
+                                    </div>
+                                    <label id="class-label" class="tiny-label">Class</label>
+                                </div>
+                                <div><input type="number" data-key="level" placeholder="1" onchange="window.updateLevelDependencies(this.value)"><label class="tiny-label">Level</label></div>
+                                <div><select id="party-select" data-key="partyId" class="cursor-pointer"><option value="">Unassigned</option></select><label class="tiny-label">Party</label></div>
+                                <div><input type="text" data-key="race" placeholder="Human"><label id="label-term-race" class="tiny-label">Race</label></div>
+                                <div><input type="text" id="archetype-field" data-key="archetype" placeholder="Survivor"><label class="tiny-label">Archetype</label></div>
+                                <div><input type="text" data-key="belief" placeholder="Belief"><label id="label-term-belief" class="tiny-label">Belief</label></div>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <div class="lg:col-span-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-6">
+                                <div class="sheet-card">
+                                    <h3 class="flex justify-between items-center">Abilities <button id="main-gen-btn" onclick="window.openScoreGenModal()" class="bg-transparent border border-blood text-blood px-2 py-0.5 rounded text-[8px] font-bold hover:bg-blood hover:text-parchment transition-colors font-heading">Roll</button></h3>
+                                    <div class="grid grid-cols-2 gap-4 mb-4">
+                                        <div class="text-center"><input type="number" data-key="profBonus" class="text-xl font-black text-center text-blood font-heading" value="2" onchange="window.calcMods()"><label class="tiny-label">Proficiency</label></div>
+                                        <div class="text-center"><input type="number" data-key="passivePerception" class="text-xl font-black text-center text-ink font-heading" value="10" readonly><label class="tiny-label">Pass. Perception</label></div>
+                                    </div>
+                                    <hr class="ornamental-hr">
+                                    <div id="stats-container" class="space-y-3"></div>
+                                </div>
+                                <div class="sheet-card">
+                                    <h3>Saves</h3>
+                                    <div class="row-header">
+                                        <div class="w-4 header-item">Prof</div>
+                                        <div class="w-8 header-item ml-2">Mod</div>
+                                        <div class="flex-grow header-item">Stat</div>
+                                        <div class="w-10 header-item text-right pr-2">Bonus</div>
+                                    </div>
+                                    <div id="saves-container" class="space-y-0.5"></div>
+                                </div>
+                                <div class="sheet-card">
+                                    <h3>Skills</h3>
+                                    <div class="row-header">
+                                        <div class="w-4 header-item">Prof</div>
+                                        <div class="w-8 header-item ml-2">Mod</div>
+                                        <div class="flex-grow header-item">Skill</div>
+                                        <div class="w-10 header-item text-right pr-2">Bonus</div>
+                                    </div>
+                                    <div id="skills-container" class="space-y-0.5 max-h-[600px] overflow-y-auto pr-1 scrollbar-hide"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-6">
+                                <div class="grid grid-cols-4 gap-2">
+                                    <div class="vital-container vital-inspiration-frame">
+                                        <div id="label-term-insp" class="vital-label">Insp</div>
+                                        <input type="text" data-key="heroicInspiration" class="vital-input" placeholder="0">
+                                    </div>
+                                    <div class="vital-container vital-shield">
+                                        <div class="vital-label">AC</div>
+                                        <input type="text" class="vital-input" data-key="ac" placeholder="10">
+                                    </div>
+                                    <div class="vital-container vital-square-init">
+                                        <div class="vital-label">INIT</div>
+                                        <button onclick="window.rollIndividualInitiative()" class="absolute top-1 right-1 text-[8px] bg-parchment hover:bg-gold text-ink p-0.5 rounded border border-gold transition-colors z-20 read-only-hide">🎲</button>
+                                        <input type="text" class="vital-input" data-key="init" placeholder="0" onchange="window.saveCurrentCharacter()">
+                                    </div>
+                                    <div class="vital-container vital-square-speed">
+                                        <div class="vital-label">Speed</div>
+                                        <input type="text" class="vital-input" data-key="speed" placeholder="30">
+                                    </div>
+                                </div>
+                                
+                                <div class="sheet-card text-center py-8 relative shadow-inner">
+                                    <button onclick="window.openHpAdjustmentModal()" class="absolute top-2 left-2 text-xs bg-transparent hover:bg-blood text-blood hover:text-parchment border border-blood p-1.5 rounded transition-colors" title="Apply Damage/Healing">⚔️</button>
+                                    
+                                    <div class="flex justify-between px-2 mb-2 text-[10px] font-bold uppercase text-ink font-heading items-center">
+                                        <span class="flex items-center gap-1">MAX HP: <input type="number" class="w-10 text-blood bg-transparent border-b border-dashed border-gray-400 text-center" data-key="hpMax"></span>
+                                        <span class="flex items-center gap-1">HD: <input type="number" class="w-8 text-center bg-transparent border-b border-dashed border-gray-400" data-key="hdCurrent"> / <input type="text" class="w-10 text-center bg-transparent border-b border-dashed border-gray-400" data-key="hd" placeholder="1d10"></span>
+                                    </div>
+                                    
+                                    <input type="number" class="text-7xl font-black text-center w-full mb-1 text-blood font-heading drop-shadow-sm bg-transparent border-none mt-4" data-key="hpCurrent" placeholder="10">
+                                    <div class="text-[10px] font-bold uppercase mt-2 font-heading text-555 border-b border-dashed border-gray-400 pb-2 mx-8">Health Points</div>
+                                    
+                                    <input type="number" class="text-xl font-bold text-center w-full mt-6 text-ink bg-transparent border-none" data-key="tempHp" placeholder="Temp HP">
+                                    <div class="text-[10px] font-bold uppercase mt-1 text-555 font-heading">Temporary Hit Points</div>
+                                    
+                                    <div class="flex gap-2 justify-center mt-6 font-heading">
+                                        <button onclick="window.rest('short')" class="bg-transparent border border-ink text-ink hover:bg-ink hover:text-parchment px-4 py-1.5 rounded text-[10px] font-bold uppercase transition-colors">Short Rest</button>
+                                        <button onclick="window.rest('long')" class="fantasy-btn px-6 py-1.5 rounded text-[10px] font-bold uppercase transition-colors">Long Rest</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="sheet-card">
+                                    <h3 id="death-coma-header">Death & Coma</h3>
+                                    <div class="text-center space-y-4">
+                                        <button id="death-save-roll-btn" onclick="window.rollDeathSave()" class="w-full bg-blood hover:bg-red-800 text-parchment py-2 rounded font-bold uppercase text-[10px] mb-2 shadow read-only-hide transition-all border border-gold font-heading">Roll Death Save</button>
+                                        
+                                        <div id="save-type-label" class="uppercase text-[10px] font-bold text-555 tracking-widest font-heading">Death Saves</div>
+                                        <div class="flex flex-col items-center gap-2">
+                                            <div class="text-green-900 text-[10px] font-bold uppercase font-heading">Success</div>
+                                            <div class="flex gap-2">
+                                                <div onclick="window.toggleDS('succ', 1)" id="ds-succ-1" class="ds-dot"></div>
+                                                <div onclick="window.toggleDS('succ', 2)" id="ds-succ-2" class="ds-dot"></div>
+                                                <div onclick="window.toggleDS('succ', 3)" id="ds-succ-3" class="ds-dot"></div>
+                                            </div>
+                                            <div class="text-blood text-[10px] font-bold uppercase mt-2 font-heading">Failure</div>
+                                            <div class="flex gap-2">
+                                                <div onclick="window.toggleDS('fail', 1)" id="ds-fail-1" class="ds-dot"></div>
+                                                <div onclick="window.toggleDS('fail', 2)" id="ds-fail-2" class="ds-dot"></div>
+                                                <div onclick="window.toggleDS('fail', 3)" id="ds-fail-3" class="ds-dot"></div>
+                                            </div>
+                                        </div>
+                                        <div class="pt-4 border-t border-dashed border-gray-400 flex items-center justify-center gap-2">
+                                            <input type="checkbox" data-key="comaActive" id="coma-active-check" class="w-4 h-4" onchange="window.handleComaToggle(this.checked)">
+                                            <span class="text-[10px] font-bold uppercase text-blood font-heading">Active Coma</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="sheet-card">
+                                    <h3 id="label-term-stress-header">Stress & Trauma</h3>
+                                    <div class="flex justify-around items-center mb-4 mt-2">
+                                        <div class="text-center"><input type="number" data-key="currentStress" class="text-3xl font-bold text-center w-20 text-blood font-heading border-b border-dashed border-gray-400" value="0"><label class="tiny-label mt-1">Current</label></div>
+                                        <div class="text-3xl text-gray-400 font-light">/</div>
+                                        <div class="text-center"><input type="number" data-key="stressThreshold" class="text-3xl font-bold text-center w-20 text-ink font-heading border-b border-dashed border-gray-400" value="10"><label class="tiny-label mt-1">Threshold</label></div>
+                                    </div>
+                                    <textarea data-key="trauma" class="text-xs italic font-serif h-12 w-full bg-transparent border-t border-dashed border-gray-400 pt-3" placeholder="Scars and traumas..."></textarea>
+                                </div>
+
+                                <div id="dynamic-class-trackers-card" class="sheet-card hidden">
+                                    <h3 id="dynamic-class-title">Vocation Trackers</h3>
+                                    <div id="dynamic-class-trackers-content" class="mt-4"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-6 space-y-6">
+                            <div id="whisper-display-box" class="hidden-view">
+                                <div class="sheet-card !bg-[rgba(124,58,237,0.1)] !border-[#7c3aed]">
+                                    <h3 class="!text-[#7c3aed] !border-[#7c3aed]">DM Whispers</h3>
+                                    <div id="whispers-list" class="space-y-3 max-h-[200px] overflow-y-auto pr-2 text-sm italic scrollbar-hide text-ink"></div>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="flex flex-col gap-2">
+                                    <div class="sheet-card h-48 flex flex-col items-center justify-center border-2 border-dashed border-gold bg-transparent group relative overflow-hidden p-1">
+                                        <div id="portrait-media-display" class="absolute inset-0 w-full h-full p-1"></div>
+                                        <div id="portrait-placeholder" class="text-center opacity-40 transition-opacity z-10">
+                                            <span class="text-4xl text-ink">👤</span><br>
+                                            <span class="text-[10px] font-bold uppercase text-ink font-heading">Portrait Media</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="tiny-label">Media URL (Img/Gif/Mp4)</label>
+                                        <input type="text" id="portrait-url-input" data-key="imageSrc" class="text-[10px] w-full" placeholder="Paste URL here..." onchange="window.saveCurrentCharacter()">
+                                    </div>
+                                </div>
+                                <div class="sheet-card h-48 flex flex-col">
+                                    <h3>Roll History</h3>
+                                    <div id="dice-log" class="flex-grow overflow-y-auto text-[10px] font-mono p-2 space-y-1 bg-[rgba(255,255,255,0.4)] rounded border border-[rgba(139,90,43,0.3)] scrollbar-hide"></div>
+                                </div>
+                            </div>
+
+                            <div class="sheet-tabs-container">
+                                <div class="tab-header-row">
+                                    <button onclick="window.switchSheetTab('actions')" class="tab-btn active" id="tab-btn-actions">Actions</button>
+                                    <button onclick="window.switchSheetTab('inventory')" class="tab-btn" id="tab-btn-inventory">Inventory</button>
+                                    <button onclick="window.switchSheetTab('features')" class="tab-btn" id="tab-btn-features">Traits</button>
+                                    <button onclick="window.switchSheetTab('background')" class="tab-btn" id="tab-btn-background">Background</button>
+                                    <button onclick="window.switchSheetTab('companion')" class="tab-btn" id="tab-btn-companion">Companion</button>
+                                    <button onclick="window.switchSheetTab('notes')" class="tab-btn" id="tab-btn-notes">Notes</button>
+                                </div>
+                                
+                                <div class="tab-content-area">
+                                    <div id="tab-content-actions" class="tab-pane">
+                                        <div class="beyond-header">Attacks & Spellcasting</div>
+                                        <div class="equip-header"><span>Name</span><span>Atk</span><span>Dmg</span><span></span></div>
+                                        <div id="attacks-list" class="space-y-1 mb-4"></div>
+                                        <button id="add-attack-btn" onclick="window.addAttackItem()" class="w-full py-2 border-2 border-dashed border-[rgba(139,90,43,0.4)] text-[10px] font-bold text-ink uppercase rounded hover:border-blood transition-colors font-heading">+ Add Weapon</button>
+                                        
+                                        <div class="beyond-header">Defenses</div>
+                                        <div class="bg-[rgba(255,255,255,0.3)] border border-[rgba(139,90,43,0.3)] rounded p-4 shadow-inner space-y-3 mb-4">
+                                            <div>
+                                                <label class="prof-label">Damage Resistances</label>
+                                                <input type="text" data-key="defResistances" class="prof-list-text w-full italic" placeholder="Fire, Poison...">
+                                            </div>
+                                            <div>
+                                                <label class="prof-label">Damage Immunities</label>
+                                                <input type="text" data-key="defImmunities" class="prof-list-text w-full italic" placeholder="Mortis, Piercing...">
+                                            </div>
+                                            <div>
+                                                <label class="prof-label">Damage Vulnerabilities</label>
+                                                <input type="text" data-key="defVulnerabilities" class="prof-list-text w-full italic" placeholder="Radiant, Bludgeoning...">
+                                            </div>
+                                        </div>
+
+                                        <div class="beyond-header">Conditions & Exhaustion</div>
+                                        <div class="bg-[rgba(255,255,255,0.3)] border border-[rgba(139,90,43,0.3)] rounded p-4 shadow-inner mb-4">
+                                            <div class="mb-4">
+                                                <label class="prof-label">Exhaustion Level (0-6)</label>
+                                                <div class="flex items-center gap-3">
+                                                    <input type="number" data-key="exhaustion" min="0" max="6" class="w-12 text-xl font-black text-center bg-parchment border border-gold rounded p-1 text-blood font-heading" value="0">
+                                                    <div class="text-[9px] text-ink font-bold uppercase italic leading-none border-l-2 border-blood pl-2">
+                                                        1: Disadv Ability Checks | 2: Speed Halved | 3: Disadv Attacks/Saves<br>
+                                                        4: HP Max Halved | 5: Speed 0 | 6: Death
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="prof-label mb-2 border-t border-dashed border-[rgba(139,90,43,0.3)] pt-2">Active Conditions</div>
+                                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-y-2 gap-x-2">
+                                                <label class="cond-row"><input type="checkbox" data-key="cond_blinded"> Blinded</label>
+                                                <label class="cond-row"><input type="checkbox" data-key="cond_charmed"> Charmed</label>
+                                                <label class="cond-row"><input type="checkbox" data-key="cond_deafened"> Deafened</label>
+                                                <label class="cond-row"><input type="checkbox" data-key="cond_frightened"> Frightened</label>
+                                                <label class="cond-row"><input type="checkbox" data-key="cond_grappled"> Grappled</label>
+                                                <label class="cond-row"><input type="checkbox" data-key="cond_incapacitated"> Incap.</label>
+                                                <label class="cond-row"><input type="checkbox" data-key="cond_invisible"> Invisible</label>
+                                                <label class="cond-row"><input type="checkbox" data-key="cond_paralyzed"> Paralyzed</label>
+                                                <label class="cond-row"><input type="checkbox" data-key="cond_petrified"> Petrified</label>
+                                                <label class="cond-row"><input type="checkbox" data-key="cond_poisoned"> Poisoned</label>
+                                                <label class="cond-row"><input type="checkbox" data-key="cond_prone"> Prone</label>
+                                                <label class="cond-row"><input type="checkbox" data-key="cond_restrained"> Restrained</label>
+                                                <label class="cond-row"><input type="checkbox" data-key="cond_stunned"> Stunned</label>
+                                                <label class="cond-row"><input type="checkbox" data-key="cond_unconscious"> Unconscious</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="beyond-header">Proficiencies & Training</div>
+                                        <div class="bg-[rgba(255,255,255,0.3)] border border-[rgba(139,90,43,0.3)] rounded p-4 shadow-inner">
+                                            <div class="prof-group">
+                                                <label class="prof-label">Armor</label>
+                                                <input type="text" data-key="profArmor" class="prof-list-text w-full italic" placeholder="Shield, Light Armor: Leather..." oninput="window.calcMods()">
+                                            </div>
+                                            <div class="prof-group">
+                                                <label class="prof-label">Weapons</label>
+                                                <input type="text" data-key="profWeapons" class="prof-list-text w-full italic" placeholder="Simple Weapons, Martial Weapons...">
+                                            </div>
+                                            <div class="prof-group">
+                                                <label class="prof-label">Tools</label>
+                                                <input type="text" data-key="profTools" class="prof-list-text w-full italic" placeholder="Tinker's Tools, Thieves' Tools...">
+                                            </div>
+                                            <div class="prof-group">
+                                                <label class="prof-label">Languages</label>
+                                                <div id="languages-list" class="flex flex-wrap gap-x-2 gap-y-1 mb-2 text-xs font-bold text-ink"></div>
+                                                <div class="flex gap-2 read-only-hide mt-2">
+                                                    <input type="text" id="lang-input" class="text-xs border-b border-gold px-2 h-7 flex-grow" placeholder="Add Language...">
+                                                    <button onclick="window.addLanguageItem()" class="bg-transparent border border-ink text-ink hover:bg-ink hover:text-parchment px-3 rounded text-[9px] font-bold h-7 transition-colors font-heading uppercase">Add</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div id="tab-content-inventory" class="tab-pane hidden">
+                                        <div class="beyond-header">Currency</div>
+                                        <div class="grid grid-cols-4 gap-4 mb-8">
+                                            <div class="char-box text-center"><label class="char-label">CP</label><input type="text" data-key="currencyCP" class="char-val text-center text-lg font-heading font-bold" placeholder="0"></div>
+                                            <div class="char-box text-center"><label class="char-label">SP</label><input type="text" data-key="currencySP" class="char-val text-center text-lg font-heading font-bold" placeholder="0"></div>
+                                            <div class="char-box text-center"><label class="char-label">GP</label><input type="text" data-key="currencyGP" class="char-val text-center text-lg font-heading font-bold text-gold" placeholder="0"></div>
+                                            <div class="char-box text-center"><label class="char-label">PP</label><input type="text" data-key="currencyPP" class="char-val text-center text-lg font-heading font-bold" placeholder="0"></div>
+                                        </div>
+                                        
+                                        <div id="dynamic-class-equip-section" class="hidden mb-6 mt-6">
+                                            <div class="beyond-header">Vocation Loadout</div>
+                                            <div id="dynamic-class-equip-content" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                                        </div>
+
+                                        <div class="beyond-header">Equipment</div>
+                                        <textarea data-key="inventory" class="text-[12px] h-64 p-3 bg-[rgba(255,255,255,0.4)] border border-[rgba(139,90,43,0.3)] rounded w-full font-serif" placeholder="Detailed Inventory list..."></textarea>
+                                    </div>
+
+                                    <div id="tab-content-features" class="tab-pane hidden">
+                                        <div class="beyond-header">Personality & Traits</div>
+                                        <div class="trait-section">
+                                            <label class="trait-title">Personality Traits</label>
+                                            <textarea data-key="traits" class="trait-input-area font-serif" placeholder="+ Add Personality Traits"></textarea>
+                                        </div>
+                                        <div class="trait-section">
+                                            <label class="trait-title">Ideals</label>
+                                            <textarea data-key="ideals" class="trait-input-area font-serif" placeholder="+ Add Ideals"></textarea>
+                                        </div>
+                                        <div class="trait-section">
+                                            <label class="trait-title">Bonds</label>
+                                            <textarea data-key="bonds" class="trait-input-area font-serif" placeholder="+ Add Bonds"></textarea>
+                                        </div>
+                                        <div class="trait-section">
+                                            <label class="trait-title">Flaws</label>
+                                            <textarea data-key="flaws" class="trait-input-area font-serif" placeholder="+ Add Flaws"></textarea>
+                                        </div>
+                                        
+                                        <div id="dynamic-class-features-section" class="hidden mt-6">
+                                            <div class="beyond-header">Vocation Features</div>
+                                            <div id="dynamic-class-features-content" class="space-y-4"></div>
+                                        </div>
+                                    </div>
+
+                                    <div id="tab-content-background" class="tab-pane hidden">
+                                        <div class="sub-filter-row">
+                                            <button onclick="window.switchSubFilter('all')" class="sub-btn active" id="sub-btn-all">All</button>
+                                            <button onclick="window.switchSubFilter('background')" class="sub-btn" id="sub-btn-background">Background</button>
+                                            <button onclick="window.switchSubFilter('characteristics')" class="sub-btn" id="sub-btn-characteristics">Appearance</button>
+                                        </div>
+                                        <div id="sub-content-background" class="sub-pane">
+                                            <div class="beyond-header">Background</div>
+                                            <div class="mb-6">
+                                                <input type="text" data-key="backgroundTitle" class="text-lg font-bold w-full mb-1 font-heading text-blood" placeholder="Background Title">
+                                                <textarea data-key="backgroundDesc" class="text-sm text-ink w-full h-24 bg-transparent border-t border-[rgba(139,90,43,0.2)] pt-2" placeholder="Feature Description..."></textarea>
+                                            </div>
+                                        </div>
+                                        <div id="sub-content-characteristics" class="sub-pane">
+                                            <div class="beyond-header">Characteristics & Appearance</div>
+                                            <div class="char-grid">
+                                                <div class="char-box"><label class="char-label">Gender</label><input type="text" data-key="gender" class="char-val" placeholder="--"></div>
+                                                <div class="char-box"><label class="char-label">Eyes</label><input type="text" data-key="eyes" class="char-val" placeholder="--"></div>
+                                                <div class="char-box"><label class="char-label">Size</label><input type="text" data-key="size" class="char-val" placeholder="--"></div>
+                                                <div class="char-box"><label class="char-label">Height</label><input type="text" data-key="height" class="char-val" placeholder="--"></div>
+                                                <div class="char-box"><label class="char-label">Hair</label><input type="text" data-key="hair" class="char-val" placeholder="--"></div>
+                                                <div class="char-box"><label class="char-label">Skin</label><input type="text" data-key="skin" class="char-val" placeholder="--"></div>
+                                                <div class="char-box"><label class="char-label">Age</label><input type="text" data-key="age" class="char-val" placeholder="--"></div>
+                                                <div class="char-box"><label class="char-label">Weight</label><input type="text" data-key="weight" class="char-val" placeholder="--"></div>
+                                            </div>
+                                            <textarea data-key="appearance" class="text-sm text-ink w-full h-32 bg-transparent border-t border-[rgba(139,90,43,0.2)] pt-2 mt-4" placeholder="+ Add Appearance information"></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="tab-content-companion" class="tab-pane hidden">
+                                        <div class="beyond-header">Personal Companion</div>
+                                        <div id="companion-view-area"></div>
+                                    </div>
+
+                                    <div id="tab-content-notes" class="tab-pane hidden">
+                                        <div class="beyond-header">Character Notes</div>
+                                        <textarea data-key="notes" class="text-[12px] h-96 p-3 bg-[rgba(255,255,255,0.4)] border border-[rgba(139,90,43,0.3)] rounded font-serif w-full" placeholder="Character history, secret notes..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8">
+                        <div class="sheet-card">
+                            <div class="flex justify-between items-center border-b border-[rgba(139,90,43,0.3)] pb-2 mb-6">
+                                <h2 class="font-heading font-bold text-lg uppercase tracking-wider text-blood">Abilities & Scripts</h2>
+                                <div class="flex items-center gap-2">
+                                    <label class="text-[10px] font-bold uppercase text-555 font-heading">Viewing:</label>
+                                    <select id="moves-selector" onchange="window.renderMovesGrid()" class="text-[10px] font-bold uppercase border rounded px-2 py-1 bg-transparent border-gold text-ink cursor-pointer font-heading">
+                                        <option value="features">Features</option>
+                                        <option value="scriptcasting">Scripts</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="features-lvl-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <!-- HP ADJUSTMENT MODAL -->
+    <div id="hp-adjustment-modal" class="modal-overlay hidden">
+        <div class="modal-container">
+            <h2 class="modal-header">Adjust Health</h2>
+            <div class="space-y-6">
+                <div class="text-center">
+                    <label class="text-[10px] font-bold uppercase text-555 mb-2 block font-heading">Amount</label>
+                    <input type="number" id="hp-adjust-amount" class="text-5xl font-black text-center w-full bg-[rgba(255,255,255,0.5)] border border-gold rounded py-4 focus:ring-0 text-blood font-heading" placeholder="0" autofocus>
+                </div>
+                <div class="grid grid-cols-2 gap-4 font-heading">
+                    <button onclick="window.applyHpAdjustment('dmg')" class="py-4 bg-transparent border-2 border-blood text-blood hover:bg-blood hover:text-parchment rounded font-bold uppercase text-sm shadow transition-all">Damage</button>
+                    <button onclick="window.applyHpAdjustment('heal')" class="py-4 bg-green-800 hover:bg-green-700 text-parchment border-2 border-green-600 rounded font-bold uppercase text-sm shadow transition-all">Heal</button>
+                </div>
+            </div>
+            <div class="modal-footer justify-center mt-6">
+                <button onclick="document.getElementById('hp-adjustment-modal').classList.add('hidden')" class="text-xs font-bold text-555 uppercase tracking-widest hover:text-ink font-heading underline">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCORE GENERATOR MODAL -->
+    <div id="score-gen-modal" class="modal-overlay hidden">
+        <div class="modal-container max-w-xl py-12 px-10">
+            <h2 class="text-4xl font-heading font-black text-blood text-center uppercase tracking-tighter mb-10 border-b border-gold pb-4">Score Generator</h2>
+            <div id="gen-controls" class="space-y-12">
+                <div class="grid grid-cols-2 gap-6 font-heading">
+                    <button onclick="window.generateScores('standard')" class="py-6 bg-transparent border-2 border-ink text-ink hover:bg-ink hover:text-parchment rounded transition-all shadow font-bold uppercase tracking-widest">
+                        Standard Array
+                    </button>
+                    <button onclick="window.generateScores('heroic')" class="py-6 fantasy-btn rounded transition-all shadow font-bold uppercase tracking-widest">
+                        Heroic Roll
+                    </button>
+                </div>
+            </div>
+            <div id="gen-results-area" class="hidden space-y-8 mt-6">
+                <div id="gen-numbers-display" class="flex justify-center flex-wrap gap-4 py-6 bg-[rgba(255,255,255,0.4)] rounded border border-dashed border-gold"></div>
+                <div id="heroic-reroll-area" class="hidden text-center">
+                    <button onclick="window.generateScores('heroic', true)" class="text-[10px] font-bold text-blood uppercase underline tracking-widest font-heading">Reroll (One Use Only)</button>
+                </div>
+                <div id="assign-grid" class="grid grid-cols-2 gap-4"></div>
+                <div class="flex justify-between items-center px-2 font-heading">
+                    <button onclick="window.randomizeAssignment()" class="text-[10px] font-bold text-ink uppercase tracking-widest hover:underline">Auto Assign</button>
+                    <button onclick="window.openScoreGenModal()" class="text-[10px] font-bold text-blood uppercase tracking-widest hover:underline">Reset</button>
+                </div>
+                <div class="flex justify-center pt-4 font-heading">
+                    <button id="gen-apply-area" onclick="window.applyScores()" class="hidden fantasy-btn px-12 py-3 rounded font-bold uppercase text-sm shadow">Apply Attributes</button>
+                </div>
+            </div>
+            <div class="flex justify-center mt-12 font-heading">
+                <button onclick="document.getElementById('score-gen-modal').classList.add('hidden')" class="text-xs font-bold text-555 uppercase tracking-[0.2em] hover:text-ink transition-colors underline">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHORT REST MODAL -->
+    <div id="short-rest-modal" class="modal-overlay hidden">
+        <div class="modal-container">
+            <h2 class="modal-header">Short Rest</h2>
+            <div class="space-y-6">
+                <div class="flex flex-col items-center bg-[rgba(255,255,255,0.4)] p-4 rounded border border-gold">
+                    <div class="text-[10px] font-bold uppercase text-555 mb-1 font-heading">Hit Dice Available</div>
+                    <div id="sr-hd-available" class="text-3xl font-black text-blood font-heading">0 / 1</div>
+                    <div id="sr-die-type-label" class="text-[10px] font-bold text-555 uppercase mt-1">d8</div>
+                </div>
+                <div class="bg-[rgba(139,90,43,0.1)] p-4 rounded border border-gold text-center">
+                    <div class="text-[10px] font-bold uppercase text-ink mb-1 font-heading">Constitution Mod</div>
+                    <div id="sr-con-mod-display" class="text-2xl font-black text-ink font-heading" data-mod="0">+0</div>
+                </div>
+                <div id="sr-roll-result-area" class="hidden">
+                    <div class="text-center p-4 bg-green-100 border border-green-600 rounded animate-pulse">
+                        <div class="text-[10px] font-bold uppercase text-green-800 mb-1 font-heading">Recent Regain</div>
+                        <div id="sr-last-roll-total" class="text-4xl font-black text-green-700 font-heading">+0 HP</div>
+                        <div id="sr-last-roll-breakdown" class="text-[10px] font-mono text-green-600">(0 + 0)</div>
+                    </div>
+                </div>
+                <div class="space-y-3 pt-2 font-heading">
+                    <button id="sr-spend-btn" onclick="window.confirmShortRest()" class="w-full py-4 fantasy-btn rounded font-bold uppercase text-sm shadow flex items-center justify-center gap-2">
+                        <span>Roll 1 Hit Die</span>
+                    </button>
+                    <button onclick="document.getElementById('short-rest-modal').classList.add('hidden')" class="w-full py-3 text-555 font-bold uppercase text-xs hover:text-ink underline">Finish Rest</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DELETE/MANAGE MODAL -->
+    <div id="delete-modal" class="modal-overlay hidden">
+        <div class="modal-container">
+            <h2 class="modal-header">Manage Character</h2>
+            <div id="delete-stage-1" class="space-y-4 font-heading">
+                <button id="restore-btn" onclick="window.restoreCharacter()" class="hidden w-full py-3 bg-green-800 text-parchment border border-green-600 rounded font-bold uppercase text-xs">Recover from Dead/Coma</button>
+                <button id="archive-btn" onclick="window.archiveCharacter()" class="w-full py-3 bg-transparent text-ink border border-ink hover:bg-ink hover:text-parchment rounded font-bold uppercase text-xs">Retire (Send to Graveyard)</button>
+                <button onclick="window.showPermDeleteConfirm()" class="w-full py-3 bg-transparent text-blood border-2 border-blood hover:bg-blood hover:text-parchment rounded font-bold uppercase text-xs">Permanently Delete</button>
+            </div>
+            <div id="delete-stage-confirm" class="hidden space-y-4 text-center font-heading">
+                <p class="text-sm font-bold text-blood uppercase border-b border-dashed border-blood pb-2 mb-4">Warning: This action is irreversible.</p>
+                <div class="flex gap-2">
+                    <button onclick="window.resetDeleteModal()" class="flex-grow py-3 bg-transparent text-ink border border-ink rounded text-xs font-bold">Cancel</button>
+                    <button onclick="window.executePermDelete()" class="flex-grow py-3 bg-blood text-parchment border border-gold rounded text-xs font-bold">YES, DELETE</button>
+                </div>
+            </div>
+            <div class="modal-footer font-heading">
+                <button onclick="document.getElementById('delete-modal').classList.add('hidden')" class="px-6 py-2 text-555 font-bold uppercase text-xs underline">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MOVE MODAL -->
+    <div id="move-modal" class="modal-overlay hidden">
+        <div class="modal-container max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b-2 border-gold mb-6 pb-2">
+                <h2 id="move-modal-title" class="text-xl font-heading font-bold uppercase tracking-wider text-blood">Edit Move</h2>
+                <button id="move-import-btn" onclick="window.toggleImportView()" class="bg-transparent border border-ink text-ink hover:bg-ink hover:text-parchment px-3 py-1 rounded text-[10px] font-bold uppercase transition-colors font-heading">Import</button>
+            </div>
+            <div id="import-view" class="hidden space-y-4 mb-6 animate-in fade-in zoom-in duration-200">
+                <div class="bg-[rgba(255,255,255,0.4)] p-4 rounded border border-gold">
+                    <p id="import-hint-text" class="text-[10px] font-bold text-ink uppercase mb-2 font-heading">Paste Text Below:</p>
+                    <textarea id="import-paste-area" class="w-full h-48 bg-transparent p-3 rounded border border-dashed border-gold font-mono text-xs leading-relaxed" placeholder="NAME: ...&#10;DICE/EFFECT ROLL: ...&#10;DESCRIPTION: ..."></textarea>
+                    <div class="flex gap-2 mt-4 font-heading">
+                        <button onclick="window.executeMoveImport()" class="fantasy-btn px-6 py-2 rounded text-xs font-bold uppercase shadow-md">Parse & Fill</button>
+                        <button onclick="window.toggleImportView()" class="text-555 px-4 py-2 text-xs font-bold uppercase underline">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            <div id="modal-standard-view" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label class="tiny-label">Name</label><input type="text" id="move-name-in" class="w-full bg-[rgba(255,255,255,0.5)] p-2 rounded font-bold uppercase font-heading text-blood"></div>
+                    <div><label class="tiny-label">Dice/Effect Roll (Optional)</label><input type="text" id="move-roll-in" class="w-full bg-[rgba(255,255,255,0.5)] p-2 rounded font-mono text-ink" placeholder="E.g. 2d6+4"></div>
+                </div>
+                <div id="script-extra-fields" class="hidden space-y-4">
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div><label class="tiny-label">Level</label><input type="text" id="script-lvl-in" class="w-full bg-transparent p-2 rounded font-bold border-b border-dashed border-gray-400" readonly></div>
+                        <div><label class="tiny-label">School</label><input type="text" id="script-school-in" class="w-full bg-[rgba(255,255,255,0.5)] p-2 rounded font-bold" placeholder="E.g. Dominion"></div>
+                        <div><label class="tiny-label">Type</label><input type="text" id="script-type-in" class="w-full bg-[rgba(255,255,255,0.5)] p-2 rounded font-bold" placeholder="Standard"></div>
+                        <div><label class="tiny-label">Activation</label><input type="text" id="script-activation-in" class="w-full bg-[rgba(255,255,255,0.5)] p-2 rounded font-bold" placeholder="1 Action"></div>
+                        <div><label class="tiny-label">Range</label><input type="text" id="script-range-in" class="w-full bg-[rgba(255,255,255,0.5)] p-2 rounded font-bold" placeholder="30 Feet"></div>
+                        <div><label class="tiny-label">Components</label><input type="text" id="script-comp-in" class="w-full bg-[rgba(255,255,255,0.5)] p-2 rounded font-bold" placeholder="V, S, M"></div>
+                    </div>
+                    <div><label class="tiny-label">Duration</label><input type="text" id="script-duration-in" class="w-full bg-[rgba(255,255,255,0.5)] p-2 rounded font-bold" placeholder="Instantaneous"></div>
+                </div>
+                <div>
+                    <label id="move-desc-label" class="tiny-label">Description</label>
+                    <textarea id="move-desc-in" class="w-full bg-[rgba(255,255,255,0.5)] border border-gold p-3 rounded text-sm h-32 leading-relaxed font-serif" placeholder="Detailed effects..."></textarea>
+                </div>
+                <div id="script-scaling-field" class="hidden">
+                    <label class="tiny-label">Scaling</label>
+                    <textarea id="script-scaling-in" class="w-full bg-[rgba(255,255,255,0.5)] border border-gold p-3 rounded text-sm h-20 leading-relaxed font-serif" placeholder="Higher level initialization effects..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer font-heading">
+                <button id="move-delete-btn" onclick="window.deleteMove()" class="hidden mr-auto text-blood font-black uppercase text-[10px] underline border-r border-blood pr-4">Delete</button>
+                <button onclick="document.getElementById('move-modal').classList.add('hidden')" class="px-4 py-2 text-555 font-bold uppercase text-xs underline">Cancel</button>
+                <button onclick="window.saveMove()" class="fantasy-btn px-8 py-2 rounded font-bold uppercase text-xs shadow-lg">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CAMPAIGN TERMINOLOGY SETTINGS MODAL (DM ONLY) -->
+    <div id="settings-modal" class="modal-overlay hidden z-[900]">
+        <div class="modal-container !bg-[#1a110b] !border-gold !text-parchment shadow-2xl !max-w-3xl flex flex-col p-6 md:p-8 !bg-none h-[90vh]">
+            <h2 class="font-heading text-2xl font-black text-gold uppercase tracking-widest border-b border-gold/30 pb-4 mb-4 text-center shrink-0">Campaign Terminology</h2>
+            <p class="text-xs text-gray-400 font-serif italic text-center mb-6 shrink-0">Rename the core pillars of your world. These names will update across all ledgers and navigation links.</p>
+            
+            <div class="overflow-y-auto space-y-8 pr-4 scrollbar-hide flex-grow pb-8 text-left">
+                <div>
+                    <h3 class="font-heading text-blood font-bold border-b border-blood/30 pb-1 mb-4">Navigation & Core Hubs</h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Party</label><input type="text" id="term-nav_party" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">NPCs</label><input type="text" id="term-nav_npcs" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Bestiary</label><input type="text" id="term-nav_beasts" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Backpack</label><input type="text" id="term-nav_backpack" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Handbook</label><input type="text" id="term-nav_handbook" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Graveyard</label><input type="text" id="term-nav_graveyard" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Session Logs</label><input type="text" id="term-nav_logs" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="font-heading text-blood font-bold border-b border-blood/30 pb-1 mb-4">Library & Lore</h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Classes</label><input type="text" id="term-book_vocations" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Races</label><input type="text" id="term-book_lineages" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Backgrounds</label><input type="text" id="term-book_backgrounds" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Landmarks</label><input type="text" id="term-book_landmarks" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Spells</label><input type="text" id="term-book_scriptcodex" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Gear & Artifacts</label><input type="text" id="term-book_artifacts" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">World Lore</label><input type="text" id="term-book_worldlore" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div class="col-span-2 sm:col-span-3 h-2"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Custodian's Athenaeum</label><input type="text" id="term-lore_custodians" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Archivist Library</label><input type="text" id="term-lore_archivists" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="font-heading text-blood font-bold border-b border-blood/30 pb-1 mb-4">Classes (Script Codex Tabs)</h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Paladin</label><input type="text" id="term-class_heartbound" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Ranger</label><input type="text" id="term-class_nomad" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Druid</label><input type="text" id="term-class_warden" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Cleric</label><input type="text" id="term-class_chronicler" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Bard</label><input type="text" id="term-class_orator" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Sorcerer</label><input type="text" id="term-class_scriptweaver" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Warlock</label><input type="text" id="term-class_wartouched" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Wizard</label><input type="text" id="term-class_archivist" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Artificer</label><input type="text" id="term-class_fabricator" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                    </div>
+                </div>
+
+                <div class="mt-8">
+                    <h3 class="font-heading text-blood font-bold border-b border-blood/30 pb-1 mb-4">Character Sheet Labels</h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Class/Vocation</label><input type="text" id="term-sheet_class" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Race/Lineage</label><input type="text" id="term-sheet_race" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Belief</label><input type="text" id="term-sheet_belief" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Inspiration</label><input type="text" id="term-sheet_insp" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Stress</label><input type="text" id="term-sheet_stress" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                        <div><label class="text-[9px] font-black text-gray-500 uppercase tracking-widest font-heading mb-1 block">Trauma</label><input type="text" id="term-sheet_trauma" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-sm text-gold focus:border-gold outline-none"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-4 mt-6 pt-4 border-t border-gold/30 shrink-0 font-heading">
+                <button onclick="document.getElementById('settings-modal').classList.add('hidden')" class="flex-1 bg-transparent border border-gray-500 text-gray-400 hover:text-white px-4 py-3 rounded font-bold uppercase text-xs transition-colors">Cancel</button>
+                <button onclick="window.saveTerminology()" class="flex-1 fantasy-btn px-4 py-3 rounded font-bold uppercase text-xs shadow-lg">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OPPORTUNITY ATTACK MODAL -->
+    <div id="op-attack-modal" class="modal-overlay hidden z-[600]">
+        <div class="modal-container !bg-ink !text-parchment !border-gray-600 !bg-none">
+            <h2 class="font-heading text-2xl font-black text-gold uppercase tracking-widest border-b border-gray-700 pb-4 mb-4 text-center">Opportunity Attack</h2>
+            <div class="text-gray-300 text-sm leading-relaxed space-y-4 font-serif">
+                <p>If a player or encounter moves away from a player or encounter, it triggers an <strong>Opportunity Attack</strong>.</p>
+                <p class="bg-black/40 p-4 rounded border border-gray-700 border-l-4 border-l-gold">
+                    In 5e, this is a <strong>Reaction</strong> used to make <em>one melee attack</em> against a visible enemy that willingly moves out of your reach (typically 5 ft).
+                </p>
+                <ul class="list-disc pl-5 space-y-2 text-xs text-gray-400">
+                    <li>The attack occurs right before the target leaves your range.</li>
+                    <li>You <strong>cannot</strong> use this if the enemy uses the <span class="text-white font-bold">Disengage action</span>.</li>
+                    <li>You <strong>cannot</strong> use this if the enemy is moved involuntarily (e.g., pushed, dropped, or teleported).</li>
+                </ul>
+            </div>
+            <div class="modal-footer justify-center mt-8 font-heading">
+                <button onclick="document.getElementById('op-attack-modal').classList.add('hidden')" class="px-8 py-3 w-full md:w-auto fantasy-btn-alt rounded font-bold uppercase text-xs transition-colors shadow">Understood</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- READY ACTION MODAL -->
+    <div id="ready-action-modal" class="modal-overlay hidden z-[600]">
+        <div class="modal-container !bg-ink !text-parchment !border-blue-900 !bg-none">
+            <h2 class="font-heading text-2xl font-black text-blue-400 uppercase tracking-widest border-b border-blue-900/50 pb-4 mb-4 text-center">Ready an Action</h2>
+            <div class="text-gray-300 text-sm leading-relaxed space-y-4 font-serif mb-6">
+                <ul class="list-disc pl-5 space-y-1 text-xs text-gray-400">
+                    <li><strong class="text-white">Reaction Cost:</strong> Holding an action uses your Reaction for this round.</li>
+                    <li><strong class="text-white">Concentration:</strong> If you Ready a script/spell, you must maintain concentration on it until released.</li>
+                    <li><strong class="text-white">Expiration:</strong> If the trigger doesn't occur before your next turn, the action is lost.</li>
+                </ul>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-black uppercase text-blue-400 mb-1 block font-heading">The Trigger (Perceivable circumstance)</label>
+                    <input type="text" id="hold-trigger-input" class="w-full bg-black/50 border border-blue-900/50 rounded p-3 text-white font-serif text-sm focus:border-blue-500" placeholder="e.g., If the goblin steps through the door...">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-blue-400 mb-1 block font-heading">The Action (One action only)</label>
+                    <input type="text" id="hold-action-input" class="w-full bg-black/50 border border-blue-900/50 rounded p-3 text-white font-serif text-sm focus:border-blue-500" placeholder="e.g., ...I shoot it with my bow.">
+                </div>
+            </div>
+            <div class="modal-footer flex justify-between mt-8 font-heading">
+                <button onclick="document.getElementById('ready-action-modal').classList.add('hidden')" class="px-6 py-2 text-gray-400 font-bold uppercase text-xs hover:text-white transition-colors underline">Cancel</button>
+                <button onclick="window.confirmHoldAction()" class="px-8 py-2 bg-blue-900 border border-blue-700 hover:bg-blue-800 text-white rounded font-bold uppercase text-xs transition-colors shadow-lg">Confirm Action</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ENCOUNTER SPAWNER MODAL -->
+    <div id="encounter-spawner-modal" class="modal-overlay hidden z-[700]">
+        <div class="modal-container !bg-ink !text-parchment !border-purple-900 shadow-2xl max-w-2xl max-h-[85vh] flex flex-col p-6 md:p-8 !bg-none">
+            <div class="flex justify-between items-center mb-6 border-b border-purple-900/50 pb-4">
+                <h2 class="font-heading text-2xl font-black text-purple-400 uppercase tracking-widest">Spawn Encounter</h2>
+                <button onclick="document.getElementById('encounter-spawner-modal').classList.add('hidden')" class="text-gray-500 hover:text-white text-xl font-black">✕</button>
+            </div>
+            
+            <div class="flex flex-wrap gap-2 mb-4 border-b border-gray-800 pb-4 font-heading">
+                <button onclick="window.switchSpawnerTab('blank')" id="spawn-tab-blank" class="spawn-tab flex-grow md:flex-grow-0 active bg-purple-900 text-white border border-purple-700 px-4 py-2 rounded text-[10px] font-bold uppercase tracking-widest transition-colors">Blank Template</button>
+                <button onclick="window.switchSpawnerTab('npcs')" id="spawn-tab-npcs" class="spawn-tab flex-grow md:flex-grow-0 bg-transparent text-gray-400 border border-gray-700 hover:text-white hover:bg-gray-800 px-4 py-2 rounded text-[10px] font-bold uppercase tracking-widest transition-colors">NPC Compendium</button>
+                <button onclick="window.switchSpawnerTab('beasts')" id="spawn-tab-beasts" class="spawn-tab flex-grow md:flex-grow-0 bg-transparent text-gray-400 border border-gray-700 hover:text-white hover:bg-gray-800 px-4 py-2 rounded text-[10px] font-bold uppercase tracking-widest transition-colors">Bestiary</button>
+            </div>
+
+            <div class="overflow-y-auto flex-grow pr-2 space-y-3 pb-4 scrollbar-hide" id="spawner-list-container">
+                <!-- Dynamic spawner content goes here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- COMBAT SELECTION MODAL -->
+    <div id="combat-selection-modal" class="modal-overlay hidden z-[800]">
+        <div class="modal-container border border-gray-600 shadow-2xl max-w-2xl max-h-[85vh] flex flex-col p-6 md:p-8 !bg-ink !text-parchment !bg-none">
+            <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-4">
+                <h2 class="font-heading text-2xl font-black text-parchment uppercase tracking-widest">Select Participants</h2>
+                <button onclick="document.getElementById('combat-selection-modal').classList.add('hidden')" class="text-gray-500 hover:text-white text-xl font-black">✕</button>
+            </div>
+            
+            <div class="overflow-y-auto flex-grow pr-2 space-y-6 pb-4 scrollbar-hide" id="combat-selection-list">
+                <!-- Populated by JS -->
+            </div>
+
+            <div class="mt-6 pt-6 border-t border-gray-700 flex justify-between gap-4 font-heading">
+                <button onclick="window.toggleAllCombatants(true)" class="text-[10px] font-bold uppercase text-gray-400 border border-gray-600 px-4 py-2 rounded hover:bg-gray-800 transition-colors">Check All</button>
+                <button onclick="window.executeStartCombat()" class="bg-blood hover:bg-red-800 text-parchment px-8 py-3 rounded font-bold uppercase text-xs tracking-widest shadow-lg transition-colors flex-grow border border-gold">Initiate Battle</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DICE OVERLAY -->
+    <div id="dice-result-overlay" class="fixed inset-0 bg-black/90 flex items-center justify-center z-[600] hidden" onclick="this.classList.add('hidden')">
+        <div class="text-center text-white p-12">
+            <div id="roll-label" class="text-gold font-heading text-2xl mb-2 uppercase tracking-widest">ROLL</div>
+            <div id="roll-total" class="text-9xl font-black mb-4 font-serif">20</div>
+            <div id="roll-breakdown" class="text-gray-300 font-mono text-lg bg-black/40 border border-gray-600 px-6 py-2 rounded-full inline-block"></div>
+        </div>
+    </div>
+
+    <!-- ROLLER BAR -->
+    <div id="quick-roll-bar" class="hidden-view floating-roller font-heading">
+        <div class="flex items-center justify-between mb-4 border-b border-[rgba(139,90,43,0.3)] pb-2 text-ink">
+            <div class="flex items-center gap-2">
+                <input type="number" id="roll-count" value="1" min="1" class="w-8 text-center font-black bg-[rgba(255,255,255,0.5)] rounded border border-gold font-serif">
+                <div class="h-4 w-px bg-gold mx-1"></div>
+                <button onclick="window.setRollMode('normal')" class="mode-btn roll-mode active-norm" id="mode-norm">Nrm</button>
+                <button onclick="window.setRollMode('adv')" class="mode-btn roll-mode" id="mode-adv">Adv</button>
+                <button onclick="window.setRollMode('dis')" class="mode-btn roll-mode" id="mode-dis">Dis</button>
+            </div>
+        </div>
+        <div class="grid grid-cols-4 gap-2">
+            <button onclick="window.rollDice(4)" class="dice-grid-btn">d4</button>
+            <button onclick="window.rollDice(6)" class="dice-grid-btn">d6</button>
+            <button onclick="window.rollDice(8)" class="dice-grid-btn">d8</button>
+            <button onclick="window.rollDice(10)" class="dice-grid-btn">d10</button>
+            <button onclick="window.rollDice(12)" class="dice-grid-btn">d12</button>
+            <button onclick="window.rollDice(20)" class="dice-grid-btn !border-blood !text-blood hover:!bg-blood hover:!text-parchment">d20</button>
+            <button onclick="window.rollDice(100)" class="dice-grid-btn">d%</button>
+        </div>
+    </div>
+
+    <!-- External Logic Script -->
+    <script type="module" src="./js/encounter.js"></script>
+</body>
+</html>
