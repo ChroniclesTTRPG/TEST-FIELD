@@ -280,7 +280,8 @@ if (!appId) {
         appId = "demo_campaign";
     } else {
         try {
-            window.location.href = "campaigns.html";
+            // STEP OUT TO NEXUS DIRECTORY IF NO CAMPAIGN ID
+            window.location.href = "../campaigns.html";
         } catch(e) {}
     }
 }
@@ -288,8 +289,16 @@ if (!appId) {
 window.routeTo = (page) => {
     try {
         let targetUrl = page;
+        
+        // Step out to nexus folder if heading back to campaigns
+        if (page === 'campaigns.html') {
+            targetUrl = '../campaigns.html';
+        }
+
         if (appId && appId !== "demo_campaign") {
-            targetUrl += `?id=${appId}`;
+            if (page !== 'campaigns.html') {
+                targetUrl += `?id=${appId}`;
+            }
         }
         window.location.href = targetUrl;
     } catch (e) {
@@ -1474,7 +1483,10 @@ const setupListeners = () => {
 // --- GLOBAL AUTHENTICATION SYNC ---
 onAuthStateChanged(auth, async (u) => {
     if (!u) {
-        try { window.location.href = "index.html"; } catch(e) {
+        try { 
+            // Step out to nexus folder on auth failure
+            window.location.href = "../index.html"; 
+        } catch(e) {
             document.getElementById('initial-loading').innerHTML = `<i class="fa-solid fa-triangle-exclamation text-6xl text-blood mb-6"></i><h2 class="font-heading text-2xl text-blood">Authentication Required</h2>`;
         }
         return;
