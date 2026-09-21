@@ -31,9 +31,11 @@ window.logoutAuth = () => {
 
 window.isAuthenticating = false;
 
+// Direct root-relative path prevents /home/home/ duplication
 window.proceedToCampaigns = async (user) => {
+    const targetUrl = "/TEST-FIELD/nexus/campaigns.html";
     try {
-        window.location.href = "../nexus/campaigns.html";
+        window.location.href = targetUrl;
     } catch(e) {
         let display = user.displayName || "Traveler";
         try {
@@ -45,7 +47,7 @@ window.proceedToCampaigns = async (user) => {
         document.getElementById('auth-view').innerHTML = `
             <div class="parchment-bg p-10 text-center shadow-2xl border-2 border-gold rounded-lg max-w-sm">
                 <h2 class="text-blood font-heading text-2xl mb-4 font-bold">Welcome Back, ${display}!</h2>
-                <p class="text-ink font-serif text-sm">Automatic redirect was prevented.<br><br><a href="../nexus/campaigns.html" class="text-blood font-bold underline">Click here to enter the Nexus</a>.</p>
+                <p class="text-ink font-serif text-sm">Automatic redirect was prevented.<br><br><a href="${targetUrl}" class="text-blood font-bold underline">Click here to enter the Nexus</a>.</p>
                 <button onclick="window.logoutAuth()" class="mt-6 text-xs text-blood font-bold uppercase tracking-widest hover:underline font-heading">Switch Account / Log Out</button>
             </div>
         `;
@@ -151,4 +153,3 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
         }
     }
 });
-// Paste the rest of your Firebase initialization and event listeners here...
