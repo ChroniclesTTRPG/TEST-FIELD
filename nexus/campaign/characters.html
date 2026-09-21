@@ -147,7 +147,10 @@
                                 <input type="checkbox" id="dm-unlock-sheet" class="w-3 h-3 accent-[#f59e0b] cursor-pointer" onchange="window.toggleSheetUnlock(this.checked)">
                                 <label for="dm-unlock-sheet" class="text-[9px] font-black uppercase text-[#f59e0b] tracking-wider font-heading cursor-pointer">Unlock Class/Stats for Player</label>
                             </div>
-                            <button id="dm-reset-roll-btn" onclick="window.dmResetAbilityScores()" class="hidden mt-1 bg-blood hover:bg-red-800 text-parchment px-4 py-1.5 rounded text-[9px] font-black uppercase tracking-widest shadow border border-gold font-heading">Reset Ability Score Roll</button>
+                            <div class="flex gap-2 mt-1">
+                                <button id="dm-reset-roll-btn" onclick="window.dmResetAbilityScores()" class="hidden bg-blood hover:bg-red-800 text-parchment px-3 py-1.5 rounded text-[9px] font-black uppercase tracking-widest shadow border border-gold font-heading">Reset Ability Scores</button>
+                                <button id="dm-add-trauma-btn" onclick="window.openDmTraumaModal()" class="bg-[#f59e0b] hover:bg-amber-600 text-black px-3 py-1.5 rounded text-[9px] font-black uppercase tracking-widest shadow font-heading">+ Assign Trauma (DM)</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -283,11 +286,11 @@
                                     </div>
                                 </div>
 
-                                <!-- CLEAN & CONDITIONAL STRESS, SCARS & TRAUMA CARD -->
+                                <!-- CLEAN STRESS & DM-ASSIGNED TRAUMA CARD -->
                                 <div class="sheet-card" id="sheet-card-stress">
                                     <div class="flex justify-between items-center border-b border-[rgba(139,90,43,0.3)] pb-2 mb-4">
                                         <h3 id="label-term-stress-header" class="!border-b-0 !mb-0 text-blood font-heading font-bold">Stress & Trauma</h3>
-                                        <span id="trauma-unlocked-badge" class="hidden text-[9px] bg-blood text-parchment px-2 py-0.5 rounded font-heading font-black tracking-widest uppercase shadow">Framework Active</span>
+                                        <span id="trauma-count-badge" class="text-[9px] bg-blood text-parchment px-2 py-0.5 rounded font-heading font-black tracking-widest uppercase shadow">0 Records</span>
                                     </div>
                                     
                                     <!-- Stress Tracker -->
@@ -303,72 +306,15 @@
                                         </div>
                                     </div>
 
-                                    <!-- Threshold Alert & Generator (Only appears when Current Stress >= Threshold) -->
-                                    <div id="stress-threshold-alert" class="hidden my-4 p-3 bg-[rgba(122,27,27,0.1)] border border-blood rounded text-center shadow-inner">
+                                    <!-- Waiting Banner for Player -->
+                                    <div id="stress-threshold-alert" class="hidden my-4 p-3 bg-[rgba(122,27,27,0.15)] border border-blood rounded text-center shadow-inner animate-pulse">
                                         <span class="text-xs font-heading font-black text-blood uppercase tracking-widest block mb-1">⚡ Stress Threshold Reached!</span>
-                                        <p class="text-[11px] font-serif italic text-ink mb-3">Your character has broken under pressure. Roll to generate physical and psychological traits.</p>
-                                        <button onclick="window.generateScarsAndTrauma()" class="fantasy-btn px-4 py-1.5 rounded text-[10px] font-heading font-bold uppercase shadow">🎲 Roll Scars & Trauma</button>
+                                        <p class="text-[11px] font-serif italic text-ink">Your character has broken under pressure. Awaiting Dungeon Master / Admin to assign your Scar or Trauma...</p>
                                     </div>
 
-                                    <!-- Scars & Trauma Fields (Hidden until Stress >= Threshold or data saved) -->
-                                    <div id="scars-trauma-fields" class="hidden space-y-3 pt-3 border-t border-dashed border-[rgba(139,90,43,0.3)] font-serif text-xs">
-                                        <div>
-                                            <label class="tiny-label text-blood font-bold">Scar Appearance & Type</label>
-                                            <input type="text" data-key="scarDesc" class="w-full italic border-b border-dashed border-gray-400 py-1" placeholder="e.g., Branching burn pattern across lower back">
-                                        </div>
-
-                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <div>
-                                                <label class="tiny-label">Scar Location</label>
-                                                <input type="text" data-key="scarLocation" class="w-full italic border-b border-dashed border-gray-400 py-1" placeholder="e.g., Back / Visible">
-                                            </div>
-                                            <div>
-                                                <label class="tiny-label">Scar / Trauma Cause</label>
-                                                <input type="text" data-key="scarCause" class="w-full italic border-b border-dashed border-gray-400 py-1" placeholder="e.g., Fracture event / Ancient machine">
-                                            </div>
-                                        </div>
-
-                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <div>
-                                                <label class="tiny-label">Trauma Event & Person</label>
-                                                <input type="text" data-key="traumaEvent" class="w-full italic border-b border-dashed border-gray-400 py-1" placeholder="e.g., Mentor trapped inside machine">
-                                            </div>
-                                            <div>
-                                                <label class="tiny-label">Severity Level</label>
-                                                <input type="text" data-key="traumaSeverity" class="w-full italic border-b border-dashed border-gray-400 py-1" placeholder="e.g., Deep Trauma">
-                                            </div>
-                                        </div>
-
-                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <div>
-                                                <label class="tiny-label">Trigger</label>
-                                                <input type="text" data-key="traumaTrigger" class="w-full italic border-b border-dashed border-gray-400 py-1" placeholder="e.g., Large machinery activating">
-                                            </div>
-                                            <div>
-                                                <label class="tiny-label">Response & Coping</label>
-                                                <input type="text" data-key="traumaResponse" class="w-full italic border-b border-dashed border-gray-400 py-1" placeholder="e.g., Protect / Obsessively study machinery">
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label class="tiny-label text-green-900 font-bold">Strength / Situational Benefit</label>
-                                            <input type="text" data-key="traumaStrength" class="w-full italic border-b border-dashed border-gray-400 py-1 text-green-900 font-semibold" placeholder="e.g., Advantage on checks operating complex machines">
-                                        </div>
-
-                                        <div>
-                                            <label class="tiny-label text-blood font-bold">Complication / Narrative Hook</label>
-                                            <input type="text" data-key="traumaComplication" class="w-full italic border-b border-dashed border-gray-400 py-1 text-blood font-semibold" placeholder="e.g., Difficulty walking away when companion is trapped">
-                                        </div>
-
-                                        <div>
-                                            <label class="tiny-label">Growth & Healing Path</label>
-                                            <input type="text" data-key="traumaGrowth" class="w-full italic border-b border-dashed border-gray-400 py-1" placeholder="e.g., Freeing someone trapped without endangering the party">
-                                        </div>
-
-                                        <div class="pt-2">
-                                            <label class="tiny-label">Additional Scars, Memories & Notes</label>
-                                            <textarea data-key="trauma" class="text-xs italic font-serif h-16 w-full bg-[rgba(255,255,255,0.3)] border border-[rgba(139,90,43,0.3)] p-2 rounded resize-y mt-1" placeholder="Additional details..."></textarea>
-                                        </div>
+                                    <!-- Recorded Trauma/Scars List -->
+                                    <div id="trauma-records-list" class="space-y-4 pt-3 border-t border-dashed border-[rgba(139,90,43,0.3)]">
+                                        <p class="text-xs text-gray-500 italic text-center py-2">No scars or traumas recorded yet.</p>
                                     </div>
                                 </div>
 
@@ -613,6 +559,39 @@
                         <div id="features-lvl-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DM ASSIGN TRAUMA MODAL -->
+    <div id="dm-trauma-modal" class="modal-overlay hidden z-[700]">
+        <div class="modal-container max-w-lg">
+            <h2 class="modal-header">Assign Trauma / Scar (DM)</h2>
+            <div class="space-y-3 font-serif text-xs">
+                <div>
+                    <label class="tiny-label text-blood font-bold">What Happened?</label>
+                    <input type="text" id="dt-what" class="w-full bg-[rgba(255,255,255,0.5)] border border-gold p-2 rounded" placeholder="e.g. Severe electrical burn across back">
+                </div>
+                <div>
+                    <label class="tiny-label">Why Did It Happen?</label>
+                    <input type="text" id="dt-why" class="w-full bg-[rgba(255,255,255,0.5)] border border-gold p-2 rounded" placeholder="e.g. Mentor trapped in machine during Fracture event">
+                </div>
+                <div>
+                    <label class="tiny-label">How Does It Trigger / React?</label>
+                    <input type="text" id="dt-how" class="w-full bg-[rgba(255,255,255,0.5)] border border-gold p-2 rounded" placeholder="e.g. Triggered by active machinery / Protect response">
+                </div>
+                <div>
+                    <label class="tiny-label text-green-900 font-bold">Situational Benefit / Strength</label>
+                    <input type="text" id="dt-benefit" class="w-full bg-[rgba(255,255,255,0.5)] border border-gold p-2 rounded" placeholder="e.g. Advantage on checks operating ancient machinery">
+                </div>
+                <div>
+                    <label class="tiny-label text-blood font-bold">Complication / Narrative Hook</label>
+                    <input type="text" id="dt-complication" class="w-full bg-[rgba(255,255,255,0.5)] border border-gold p-2 rounded" placeholder="e.g. Cannot walk away when an ally is trapped by machines">
+                </div>
+            </div>
+            <div class="modal-footer font-heading mt-6">
+                <button onclick="document.getElementById('dm-trauma-modal').classList.add('hidden')" class="px-4 py-2 text-555 font-bold uppercase text-xs underline">Cancel</button>
+                <button onclick="window.saveDmTrauma()" class="fantasy-btn px-6 py-2 rounded font-bold uppercase text-xs shadow-lg">Save Record</button>
             </div>
         </div>
     </div>
