@@ -2,7 +2,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/fireba
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, addDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
-// --- FIREBASE INITIALIZATION & TOP-LEVEL STATE SCOPING ---
 const firebaseConfig = {
     apiKey: "AIzaSyCKRN5dfi4og69_D8ZAvV1BQfwCK_f2uis",
     authDomain: "dndcampaigns-f3d48.firebaseapp.com",
@@ -16,13 +15,11 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Top-level Application State
 let characters = [], parties = [], currentUser = null, activeCharId = null, activeRole = 'player', rollMode = 'normal';
 let autoSaveTimer = null, lastGeneratedScores = [], sessionRerollUsed = false;
 let activeManagePartyId = null, activeMoveLvl = null, editingMoveIndex = null;
 let campaignSettings = { terms: {} };
 
-// --- AEONFALL DATA-DRIVEN VOCATIONS DATA ENGINE ---
 const VOCATION_CONFIG = {
     'heartbound': {
         name: 'Heartbound', baseClass: 'Paladin', hitDie: 10, primaryAbilities: 'Strength / Charisma', multiclassReq: 'Strength 13 or Charisma 13',
@@ -399,13 +396,26 @@ if (!appId) {
 
 window.routeTo = (page) => {
     try {
-        let targetUrl = page;
-        if (page === 'campaigns.html') {
-            targetUrl = '../campaigns.html';
+        const path = window.location.pathname;
+        const campaignIdx = path.indexOf('/nexus/campaign/');
+        let basePath = '';
+        if (campaignIdx !== -1) {
+            basePath = path.substring(0, campaignIdx) + '/nexus/campaign/';
         }
-        if (appId && appId !== "demo_campaign") {
-            if (page !== 'campaigns.html') {
-                targetUrl += `?id=${appId}`;
+
+        let target = page.startsWith('/') ? page.slice(1) : page;
+
+        if (target === 'encounters.html' || target === 'encounter.html') {
+            target = 'encounter/encounters.html';
+        }
+
+        let targetUrl = '';
+        if (target.includes('campaigns.html')) {
+            targetUrl = basePath ? (basePath + '../campaigns.html') : '../campaigns.html';
+        } else {
+            targetUrl = basePath ? (basePath + target) : target;
+            if (appId && appId !== "demo_campaign") {
+                targetUrl += (targetUrl.includes('?') ? '&' : '?') + `id=${appId}`;
             }
         }
         window.location.href = targetUrl;
@@ -414,12 +424,11 @@ window.routeTo = (page) => {
     }
 };
 
-// --- LEVEL UP WIZARD & MILESTONE ENGINE ---
 let wizardState = {
     selectedVocationKey: null,
     hpGainMethod: null,
     hpGainValue: 0,
-    asiChoice: 'none', // 'single', 'double', 'feat', 'none'
+    asiChoice: 'none',
     asiStats: {},
     growthCategory: '',
     growthNote: '',
@@ -590,7 +599,6 @@ window.confirmLevelUp = async () => {
     const newMaxHp = (parseInt(char.hpMax) || 10) + wizardState.hpGainValue;
     const pendingCount = Math.max(0, (char.pendingLevelsCount || 1) - 1);
 
-    // Read narrative Growth and Development inputs if available in DOM
     const growthCat = document.getElementById('lvl-growth-cat')?.value || 'Hardiness';
     const growthNote = document.getElementById('lvl-growth-note')?.value.trim() || '';
     const devCat = document.getElementById('lvl-dev-cat')?.value || 'Strengthened';
@@ -638,7 +646,6 @@ window.confirmLevelUp = async () => {
     window.showToast(`Congratulations! Level Up Complete: Character Level ${totalCharLvl}!`);
 };
 
-// --- EXHAUSTION CONTROLS ---
 window.adjustExhaustion = async (amount, reset = false) => {
     const char = characters.find(c => c.id === activeCharId);
     if (!char) return;
@@ -690,7 +697,6 @@ window.renderExhaustionUI = (lvl) => {
     }
 };
 
-// --- STRESS THRESHOLD & DM-ONLY TRAUMA LOGIC ---
 window.checkStressThreshold = (val) => {
     const curStress = parseInt(val) || 0;
     const thresholdInput = document.querySelector('[data-key="stressThreshold"]');
@@ -918,7 +924,6 @@ const applyCampaignSettings = (settings) => {
     safeSet('label-term-stress-header', (terms.sheet_stress || SHEET_LABELS.stress) + ' & ' + (terms.sheet_trauma || SHEET_LABELS.trauma));
     safeSet('death-coma-header', terms.sheet_death || SHEET_LABELS.death);
     
-    // Update Moves Selector options dynamically
     const movesSel = document.getElementById('moves-selector');
     if (movesSel) {
         if (movesSel.options[0]) movesSel.options[0].text = terms.sheet_actions || "Features";
@@ -962,15 +967,7 @@ window.createParty = async () => { const n = document.getElementById('party-name
 
 window.openCompanionSheet = (e, petId) => {
     e.stopPropagation();
-    try {
-        let targetUrl = `companions.html?openSheet=${petId}`;
-        if (appId && appId !== "demo_campaign") {
-            targetUrl += `&id=${appId}`;
-        }
-        window.location.href = targetUrl;
-    } catch (err) {
-        window.showToast("Redirects disabled in preview window.");
-    }
+    window.routeTo(`companions.html?openSheet=${petId}`);
 };
 
 window.renderDashboard = () => {
@@ -1123,7 +1120,6 @@ function syncSheetData() {
     document.querySelectorAll('.read-only-hide').forEach(el => el.classList.toggle('hidden', !canEdit));
     document.getElementById('sheet-readonly-badge').classList.toggle('hidden', canEdit);
     
-    // Notes Lock
     const canEditNotes = (currentUser?.username && char.owner === currentUser.username) || (isDM && char.type !== 'PC');
     const floatingNotes = document.querySelector('#quick-notes-bar textarea[data-key="notes"]');
     if (floatingNotes) {
@@ -1137,13 +1133,11 @@ function syncSheetData() {
         }
     }
 
-    /* LEVEL UP WIZARD BUTTON DISPLAY */
     const lvlWizardBtn = document.getElementById('btn-level-up-wizard');
     if (lvlWizardBtn) {
         lvlWizardBtn.classList.toggle('hidden', !char.levelUpPending || !canEdit);
     }
 
-    /* PROGRESSION & ABILITY ROLL LOCKS */
     const dmUnlockCheck = document.getElementById('dm-unlock-sheet');
     if (dmUnlockCheck) dmUnlockCheck.checked = !!char.unlockedByDM;
 
@@ -1176,11 +1170,8 @@ function syncSheetData() {
         dmResetRollBtn.classList.toggle('hidden', !isDM || !char.scoresGenerated);
     }
 
-    // Check stress threshold & render trauma records
     window.checkStressThreshold(char.currentStress || 0);
     window.renderTraumaListUI(char.traumaRecords || []);
-
-    // Render exhaustion UI
     window.renderExhaustionUI(parseInt(char.exhaustion) || 0);
 
     const classInput = document.getElementById('class-input');
@@ -1394,7 +1385,6 @@ window.applyHpAdjustment = async (type) => {
     document.getElementById('hp-adjustment-modal').classList.add('hidden');
 };
 
-// --- SCORE GENERATION WITH PERMANENT LOCK & DM REROLL ---
 window.openScoreGenModal = () => { 
     const char = characters.find(c => c.id === activeCharId);
     const isDM = activeRole === 'dm';
@@ -1532,7 +1522,6 @@ window.toggleRoller = (minimize) => {
     }
 };
 
-// --- SCRIPTCASTING GRID RENDERER WITH FIXED FILTERING & AEONFALL RULES ---
 window.renderMovesGrid = () => { 
     const s = document.getElementById('moves-selector'); if (!s) return; 
     const t = s.value; const g = document.getElementById('features-lvl-grid'); if (!g) return; 
@@ -1595,7 +1584,6 @@ window.renderMovesGrid = () => {
         const card = document.createElement('div'); 
         card.className = "lvl-card"; 
         
-        // Flexible matching: check against 'features' / 'actions' and 'scriptcasting' / 'scripts'
         const filtered = moves.filter(m => {
             const mLevelMatches = m.lvl === lvl;
             if (!mLevelMatches) return false;
@@ -2029,11 +2017,10 @@ const setupListeners = () => {
     onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'parties'), (snap) => { parties = snap.docs.map(d => ({id: d.id, ...d.data()})); window.renderDashboard(); if (activeCharId) syncSheetData(); });
 };
 
-// --- GLOBAL AUTHENTICATION SYNC ---
 onAuthStateChanged(auth, async (u) => {
     if (!u) {
         try { 
-            window.location.href = "../index.html"; 
+            window.location.href = "../../home/index.html"; 
         } catch(e) {
             document.getElementById('initial-loading').innerHTML = `<i class="fa-solid fa-triangle-exclamation text-6xl text-blood mb-6"></i><h2 class="font-heading text-2xl text-blood">Authentication Required</h2>`;
         }
