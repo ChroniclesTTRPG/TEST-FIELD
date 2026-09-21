@@ -31,7 +31,6 @@ window.logoutAuth = () => {
 
 window.isAuthenticating = false;
 
-// Updated to point outside home/ and into nexus/campaigns.html
 window.proceedToCampaigns = async (user) => {
     try {
         window.location.href = "../nexus/campaigns.html";
@@ -58,7 +57,7 @@ window.proceedToCampaigns = async (user) => {
 // --- AUTHENTICATION STATE OBSERVER ---
 onAuthStateChanged(auth, async (user) => {
     if (user) {
-        if (window.isAuthenticating) return; // Wait for manual redirect from the registration script
+        if (window.isAuthenticating) return;
         await window.proceedToCampaigns(user);
     } else {
         document.getElementById('initial-loading').classList.add('hidden');
@@ -123,7 +122,6 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             user = userCredential.user;
 
-            // Ensure the document finishes writing BEFORE redirecting
             await setDoc(doc(db, 'users', user.uid), {
                 username: '',
                 email: email,
@@ -153,5 +151,4 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
         }
     }
 });
-
 // Paste the rest of your Firebase initialization and event listeners here...
