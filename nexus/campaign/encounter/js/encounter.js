@@ -2,7 +2,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/fireba
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, addDoc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
-// --- DYNAMIC CLASS GENERATOR ---
 const VOCATION_DATA = {
     'vanguard': {
         trackers: ['Guard Stance Tracker'],
@@ -387,8 +386,6 @@ window.renderDashboard = () => {
     renderEncounterSection('Enemies', enemies, 'text-blood');
     renderEncounterSection('Beasts', beasts, 'text-green-600');
     renderEncounterSection('NPCs & Others', npcs, 'text-blue-500');
-    
-    window.renderItems();
 };
 
 function createCard(c) {
@@ -720,9 +717,6 @@ function execRoll(label, bonus) {
     const r1 = getRoll(20), r2 = getRoll(20); 
     let final, btxt; if (rollMode === 'adv') { final = Math.max(r1, r2); btxt = `Adv: High(${r1}, ${r2})`; } else if (rollMode === 'dis') { final = Math.min(r1, r2); btxt = `Dis: Low(${r1}, ${r2})`; } else { final = r1; btxt = `(${r1})`; } 
     
-    if (final === 1) triggerCriticalFailure(); 
-    if (final === 20) triggerCriticalSuccess();
-    
     const total = final + bonus; const displayTotal = (total >= 0 ? '+' : '') + total;
     document.getElementById('roll-label').textContent = label; document.getElementById('roll-total').textContent = displayTotal; 
     document.getElementById('roll-breakdown').textContent = `${btxt} + ${bonus}`; 
@@ -738,11 +732,9 @@ window.rollDice = (s) => {
     const count = parseInt(document.getElementById('roll-count').value) || 1; let label, total, breakdown; 
     if (count === 1 && rollMode !== 'normal') { 
         const r1 = getRoll(s), r2 = getRoll(s); let final = rollMode === 'adv' ? Math.max(r1, r2) : Math.min(r1, r2);
-        if (s === 20) { if (final === 1) triggerCriticalFailure(); if (final === 20) triggerCriticalSuccess(); }
         total = final; label = `d${s} Roll`; breakdown = `${rollMode.toUpperCase()}: (${r1}, ${r2})`;
     } else { 
         const rolls = Array.from({length: count}, () => getRoll(s)); 
-        if (count === 1 && s === 20) { if (rolls[0] === 1) triggerCriticalFailure(); if (rolls[0] === 20) triggerCriticalSuccess(); }
         total = rolls.reduce((a, b) => a + b, 0); label = `${count}d${s} Roll`; breakdown = count > 1 ? `${rolls.join(' + ')} = ${total}` : `(${rolls[0]})`; 
     } 
     document.getElementById('roll-label').textContent = label; document.getElementById('roll-total').textContent = total; document.getElementById('roll-breakdown').textContent = breakdown; document.getElementById('dice-result-overlay').classList.remove('hidden'); addRollToHistory(label, total); 
@@ -756,7 +748,7 @@ window.renderMovesGrid = () => {
     const canEdit = (currentUser && char.owner === currentUser.username) || char.owner === 'DM' || activeRole === 'dm';
     levels.forEach(lvl => { 
         const card = document.createElement('div'); card.className = "lvl-card"; const filtered = moves.filter(m => m.lvl === lvl && m.type === t); let html = `<div class="lvl-header">${lvl.toUpperCase()}</div><div class="flex-grow space-y-1">`;
-        filtered.forEach(m => { const mIdx = moves.indexOf(m); html += `<div class="move-pill" ${canEdit ? `onclick="window.openMoveModal('${lvl}',${mIdx})"` : ''}><span class="move-name">${m.name}</span><span class="move-roll">${m.roll || ''}</span></div>`; });
+        filtered.forEach(m => { const mIdx = moves.indexOf(m); html += `<div class="move-pill" ${canEdit ? `onclick="window.openMoveModal('${lvl}', ${mIdx})"` : ''}><span class="move-name">${m.name}</span><span class="move-roll">${m.roll || ''}</span></div>`; });
         if (canEdit) html += `</div><button onclick="window.openMoveModal('${lvl}')" class="text-[9px] font-bold uppercase text-blood hover:text-ink text-center mt-2 font-heading transition-colors">+ ADD</button>`; else html += `</div>`;
         card.innerHTML = html; g.appendChild(card);
     }); 
@@ -1033,15 +1025,15 @@ window.rollDeathSave = async () => {
     let s = char.dsSucc || 0, f = char.dsFail || 0, updates = {}, msg = "";
     const isComa = !!char.comaActive;
     if (isComa) {
-        if (roll === 20) { updates = { hpCurrent: 1, dsSucc: 0, dsFail: 0, comaActive: false, status: 'alive', exhaustion: (parseInt(char.exhaustion) || 0) + 1 }; msg = "NATURAL 20! Awakening (HP 1, Exhaustion +1)."; triggerCriticalSuccess(); } 
-        else if (roll === 1) { f += 2; updates.currentStress = (parseInt(char.currentStress) || 0) + 1; const comp = COMA_COMPLICATIONS[Math.floor(Math.random() * COMA_COMPLICATIONS.length)]; msg = "NATURAL 1! +1 Stress, 2 Failures & Complication: " + comp; triggerCriticalFailure(); } 
+        if (roll === 20) { updates = { hpCurrent: 1, dsSucc: 0, dsFail: 0, comaActive: false, status: 'alive', exhaustion: (parseInt(char.exhaustion) || 0) + 1 }; msg = "NATURAL 20! Awakening (HP 1, Exhaustion +1)."; } 
+        else if (roll === 1) { f += 2; updates.currentStress = (parseInt(char.currentStress) || 0) + 1; const comp = COMA_COMPLICATIONS[Math.floor(Math.random() * COMA_COMPLICATIONS.length)]; msg = "NATURAL 1! +1 Stress, 2 Failures & Complication: " + comp; } 
         else if (roll >= 12) { s += 1; msg = "Coma Success (" + roll + ")"; } 
         else { f += 1; msg = "Coma Failure (" + roll + ")"; }
         if (s >= 3) { updates = { hpCurrent: 1, dsSucc: 0, dsFail: 0, comaActive: false, status: 'alive', exhaustion: (parseInt(char.exhaustion) || 0) + 1 }; msg += " — Character Awakens (Exhaustion +1, HP 1)."; } 
         else if (f >= 3) { updates.status = 'dead'; msg += " — Body can no longer sustain life. Character is deceased."; }
     } else {
-        if (roll === 20) { updates = { hpCurrent: 1, dsSucc: 0, dsFail: 0, status: 'alive' }; msg = "NATURAL 20! Back on your feet with 1 HP."; triggerCriticalSuccess(); } 
-        else if (roll === 1) { f += 2; updates.currentStress = (parseInt(char.currentStress) || 0) + 1; msg = "NATURAL 1! +1 Stress & 2 Failures marked."; triggerCriticalFailure(); } 
+        if (roll === 20) { updates = { hpCurrent: 1, dsSucc: 0, dsFail: 0, status: 'alive' }; msg = "NATURAL 20! Back on your feet with 1 HP."; } 
+        else if (roll === 1) { f += 2; updates.currentStress = (parseInt(char.currentStress) || 0) + 1; msg = "NATURAL 1! +1 Stress & 2 Failures marked."; } 
         else if (roll >= 10) { s += 1; msg = "Success (" + roll + ")"; } 
         else { f += 1; msg = "Failure (" + roll + ")"; }
         if (s >= 3) { updates.status = 'alive'; updates.dsSucc = 0; updates.dsFail = 0; msg += " — Stabilized!"; } 
@@ -1075,13 +1067,11 @@ const setupListeners = () => {
             activeTurnId = docSnap.data().activeTurnId || null;
             const roundEl = document.getElementById('current-round-display');
             if (roundEl) roundEl.textContent = currentRound;
-            window.renderItems();
-            window.updateSheetTurnState();
+            window.renderDashboard();
         }
     }, (err) => console.error("Global State Sync Error:", err));
 };
 
-// --- GLOBAL AUTHENTICATION SYNC ---
 onAuthStateChanged(auth, async (u) => {
     if (!u) {
         try { window.location.href = "../../../home/index.html"; } catch(e) {
