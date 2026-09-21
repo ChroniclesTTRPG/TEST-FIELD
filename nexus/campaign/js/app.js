@@ -212,7 +212,7 @@ window.autoCalcHP = (force = false) => {
     }
     
     classes.forEach((cls, idx) => {
-        const hd = window.getHitDie(cls.name);
+        const hd = window.getHitDie ? window.getHitDie(cls.name) : 8;
         const lvl = parseInt(cls.level) || 1;
         if (lvl > 0) hdParts.push(`${lvl}d${hd}`);
         
@@ -252,9 +252,9 @@ window.autoCalcHP = (force = false) => {
 window.updateClassSpecifics = () => {
     const inputVal = (document.getElementById('class-input')?.value || '').toLowerCase();
     let matchedClasses = [];
-    const aliases = window.getVocationAliases();
+    const aliases = window.getVocationAliases ? window.getVocationAliases() : {};
     for (const k in VOCATION_DATA) {
-        if (inputVal.includes(aliases[k])) {
+        if (inputVal.includes(aliases[k] || k)) {
             matchedClasses.push(k);
         }
     }
@@ -334,7 +334,7 @@ window.updateClassSpecifics = () => {
     if (activeCharId && characters) {
         const char = characters.find(c => c.id === activeCharId);
         if (char) {
-            const isOwner = (currentUser && char.owner === currentUser.username) || char.owner === 'DM';
+            const isOwner = (currentUser?.username && char.owner === currentUser.username) || char.owner === 'DM';
             const isDM = activeRole === 'dm';
             const canEdit = isOwner || isDM;
 
@@ -473,7 +473,7 @@ window.wizardRollHP = () => {
     const char = characters.find(c => c.id === activeCharId);
     const conMod = Math.floor(((parseInt(char.con || 10) - 10) / 2));
     
-    const roll = getRoll(vData.hitDie);
+    const roll = Math.floor(Math.random() * vData.hitDie) + 1;
     wizardSelectedHpGain = Math.max(1, roll + conMod);
 
     const res = document.getElementById('hp-gain-result');
@@ -695,6 +695,27 @@ const DEFAULT_MODULES = {
     mod_currency: true, mod_inventory: true, mod_background: true, mod_companion: true
 };
 
+const SHEET_LABELS = {
+    class: "Class", level: "Level", party: "Party", race: "Race", archetype: "Archetype", belief: "Belief",
+    insp: "Inspiration", abilities: "Abilities", prof: "Proficiency", saves: "Saves", skills: "Skills",
+    ac: "AC", init: "INIT", speed: "Speed", hp: "Health Points", hd: "Hit Dice", temphp: "Temp HP",
+    death: "Death & Coma", stress: "Stress", trauma: "Trauma", actions: "Actions", attacks: "Attacks",
+    defenses: "Defenses", conditions: "Conditions", proficiencies: "Proficiencies", inventory: "Inventory",
+    currency: "Currency", equipment: "Equipment", traits: "Traits", personality: "Personality",
+    ideals: "Ideals", bonds: "Bonds", flaws: "Flaws", background: "Background", characteristics: "Characteristics",
+    companion: "Companion", notes: "Notes"
+};
+
+const STATS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+const SKILLS = [
+    {n: 'Acrobatics', s: 'dex'}, {n: 'Animal Handling', s: 'wis'}, {n: 'Arcana', s: 'int'},
+    {n: 'Athletics', s: 'str'}, {n: 'Deception', s: 'cha'}, {n: 'History', s: 'int'},
+    {n: 'Insight', s: 'wis'}, {n: 'Intimidation', s: 'cha'}, {n: 'Investigation', s: 'int'},
+    {n: 'Medicine', s: 'wis'}, {n: 'Nature', s: 'int'}, {n: 'Perception', s: 'wis'},
+    {n: 'Performance', s: 'cha'}, {n: 'Persuasion', s: 'cha'}, {n: 'Religion', s: 'int'},
+    {n: 'Sleight of Hand', s: 'dex'}, {n: 'Stealth', s: 'dex'}, {n: 'Survival', s: 'wis'}
+];
+
 window.switchSheetTab = (tabId) => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
@@ -706,37 +727,39 @@ window.openSettingsModal = () => {
     const t = campaignSettings.terms || {};
     const mods = campaignSettings.modules || DEFAULT_MODULES;
 
-    document.getElementById('term-nav_party').value = t.nav_party || 'Party';
-    document.getElementById('term-nav_npcs').value = t.nav_npcs || 'NPCs';
-    document.getElementById('term-nav_beasts').value = t.nav_beasts || 'Bestiary';
-    document.getElementById('term-nav_backpack').value = t.nav_backpack || 'Backpack';
-    document.getElementById('term-nav_handbook').value = t.nav_handbook || 'Handbook';
-    document.getElementById('term-nav_graveyard').value = t.nav_graveyard || 'Graveyard';
-    document.getElementById('term-nav_logs').value = t.nav_logs || 'Logs';
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
 
-    document.getElementById('term-book_vocations').value = t.book_vocations || 'Vocations';
-    document.getElementById('term-book_lineages').value = t.book_lineages || 'Lineages';
-    document.getElementById('term-book_backgrounds').value = t.book_backgrounds || 'Backgrounds';
-    document.getElementById('term-book_landmarks').value = t.book_landmarks || 'Landmarks';
-    document.getElementById('term-book_scriptcodex').value = t.book_scriptcodex || 'Script Codex';
-    document.getElementById('term-book_artifacts').value = t.book_artifacts || 'Gear & Artifacts';
-    document.getElementById('term-book_worldlore').value = t.book_worldlore || 'World Lore';
-    document.getElementById('term-lore_custodians').value = t.lore_custodians || "Custodian's Athenaeum";
-    document.getElementById('term-lore_archivists').value = t.lore_archivists || "Archivist Public Library";
+    setVal('term-nav_party', t.nav_party || 'Party');
+    setVal('term-nav_npcs', t.nav_npcs || 'NPCs');
+    setVal('term-nav_beasts', t.nav_beasts || 'Bestiary');
+    setVal('term-nav_backpack', t.nav_backpack || 'Backpack');
+    setVal('term-nav_handbook', t.nav_handbook || 'Handbook');
+    setVal('term-nav_graveyard', t.nav_graveyard || 'Graveyard');
+    setVal('term-nav_logs', t.nav_logs || 'Logs');
 
-    document.getElementById('term-class_vanguard').value = t.class_vanguard || 'Vanguard';
-    document.getElementById('term-class_warrior').value = t.class_warrior || 'Warrior';
-    document.getElementById('term-class_peacekeeper').value = t.class_peacekeeper || 'Peacekeeper';
-    document.getElementById('term-class_scavenger').value = t.class_scavenger || 'Scavenger';
-    document.getElementById('term-class_heartbound').value = t.class_heartbound || 'Heartbound';
-    document.getElementById('term-class_nomad').value = t.class_nomad || 'Nomad';
-    document.getElementById('term-class_warden').value = t.class_warden || 'Wilderness Warden';
-    document.getElementById('term-class_chronicler').value = t.class_chronicler || 'Chronicler';
-    document.getElementById('term-class_orator').value = t.class_orator || 'Orator';
-    document.getElementById('term-class_scriptweaver').value = t.class_scriptweaver || 'Scriptweaver';
-    document.getElementById('term-class_wartouched').value = t.class_wartouched || 'War-Touched';
-    document.getElementById('term-class_archivist').value = t.class_archivist || 'Archivist';
-    document.getElementById('term-class_fabricator').value = t.class_fabricator || 'Fabricator';
+    setVal('term-book_vocations', t.book_vocations || 'Vocations');
+    setVal('term-book_lineages', t.book_lineages || 'Lineages');
+    setVal('term-book_backgrounds', t.book_backgrounds || 'Backgrounds');
+    setVal('term-book_landmarks', t.book_landmarks || 'Landmarks');
+    setVal('term-book_scriptcodex', t.book_scriptcodex || 'Script Codex');
+    setVal('term-book_artifacts', t.book_artifacts || 'Gear & Artifacts');
+    setVal('term-book_worldlore', t.book_worldlore || 'World Lore');
+    setVal('term-lore_custodians', t.lore_custodians || "Custodian's Athenaeum");
+    setVal('term-lore_archivists', t.lore_archivists || "Archivist Public Library");
+
+    setVal('term-class_vanguard', t.class_vanguard || 'Vanguard');
+    setVal('term-class_warrior', t.class_warrior || 'Warrior');
+    setVal('term-class_peacekeeper', t.class_peacekeeper || 'Peacekeeper');
+    setVal('term-class_scavenger', t.class_scavenger || 'Scavenger');
+    setVal('term-class_heartbound', t.class_heartbound || 'Heartbound');
+    setVal('term-class_nomad', t.class_nomad || 'Nomad');
+    setVal('term-class_warden', t.class_warden || 'Wilderness Warden');
+    setVal('term-class_chronicler', t.class_chronicler || 'Chronicler');
+    setVal('term-class_orator', t.class_orator || 'Orator');
+    setVal('term-class_scriptweaver', t.class_scriptweaver || 'Scriptweaver');
+    setVal('term-class_wartouched', t.class_wartouched || 'War-Touched');
+    setVal('term-class_archivist', t.class_archivist || 'Archivist');
+    setVal('term-class_fabricator', t.class_fabricator || 'Fabricator');
 
     Object.keys(SHEET_LABELS).forEach(k => {
         const el = document.getElementById(`term-sheet_${k}`);
@@ -752,38 +775,40 @@ window.openSettingsModal = () => {
 };
 
 window.saveTerminology = async () => {
+    const getVal = (id, fallback) => document.getElementById(id)?.value?.trim() || fallback;
+
     const terms = {
-        nav_party: document.getElementById('term-nav_party').value.trim() || 'Party',
-        nav_npcs: document.getElementById('term-nav_npcs').value.trim() || 'NPCs',
-        nav_beasts: document.getElementById('term-nav_beasts').value.trim() || 'Bestiary',
-        nav_backpack: document.getElementById('term-nav_backpack').value.trim() || 'Backpack',
-        nav_handbook: document.getElementById('term-nav_handbook').value.trim() || 'Handbook',
-        nav_graveyard: document.getElementById('term-nav_graveyard').value.trim() || 'Graveyard',
-        nav_logs: document.getElementById('term-nav_logs').value.trim() || 'Logs',
+        nav_party: getVal('term-nav_party', 'Party'),
+        nav_npcs: getVal('term-nav_npcs', 'NPCs'),
+        nav_beasts: getVal('term-nav_beasts', 'Bestiary'),
+        nav_backpack: getVal('term-nav_backpack', 'Backpack'),
+        nav_handbook: getVal('term-nav_handbook', 'Handbook'),
+        nav_graveyard: getVal('term-nav_graveyard', 'Graveyard'),
+        nav_logs: getVal('term-nav_logs', 'Logs'),
 
-        book_vocations: document.getElementById('term-book_vocations').value.trim() || 'Vocations',
-        book_lineages: document.getElementById('term-book_lineages').value.trim() || 'Lineages',
-        book_backgrounds: document.getElementById('term-book_backgrounds').value.trim() || 'Backgrounds',
-        book_landmarks: document.getElementById('term-book_landmarks').value.trim() || 'Landmarks',
-        book_scriptcodex: document.getElementById('term-book_scriptcodex').value.trim() || 'Script Codex',
-        book_artifacts: document.getElementById('term-book_artifacts').value.trim() || 'Gear & Artifacts',
-        book_worldlore: document.getElementById('term-book_worldlore').value.trim() || 'World Lore',
-        lore_custodians: document.getElementById('term-lore_custodians').value.trim() || "Custodian's Athenaeum",
-        lore_archivists: document.getElementById('term-lore_archivists').value.trim() || "Archivist Public Library",
+        book_vocations: getVal('term-book_vocations', 'Vocations'),
+        book_lineages: getVal('term-book_lineages', 'Lineages'),
+        book_backgrounds: getVal('term-book_backgrounds', 'Backgrounds'),
+        book_landmarks: getVal('term-book_landmarks', 'Landmarks'),
+        book_scriptcodex: getVal('term-book_scriptcodex', 'Script Codex'),
+        book_artifacts: getVal('term-book_artifacts', 'Gear & Artifacts'),
+        book_worldlore: getVal('term-book_worldlore', 'World Lore'),
+        lore_custodians: getVal('term-lore_custodians', "Custodian's Athenaeum"),
+        lore_archivists: getVal('term-lore_archivists', "Archivist Public Library"),
 
-        class_vanguard: document.getElementById('term-class_vanguard').value.trim() || 'Vanguard',
-        class_warrior: document.getElementById('term-class_warrior').value.trim() || 'Warrior',
-        class_peacekeeper: document.getElementById('term-class_peacekeeper').value.trim() || 'Peacekeeper',
-        class_scavenger: document.getElementById('term-class_scavenger').value.trim() || 'Scavenger',
-        class_heartbound: document.getElementById('term-class_heartbound').value.trim() || 'Heartbound',
-        class_nomad: document.getElementById('term-class_nomad').value.trim() || 'Nomad',
-        class_warden: document.getElementById('term-class_warden').value.trim() || 'Wilderness Warden',
-        class_chronicler: document.getElementById('term-class_chronicler').value.trim() || 'Chronicler',
-        class_orator: document.getElementById('term-class_orator').value.trim() || 'Orator',
-        class_scriptweaver: document.getElementById('term-class_scriptweaver').value.trim() || 'Scriptweaver',
-        class_wartouched: document.getElementById('term-class_wartouched').value.trim() || 'War-Touched',
-        class_archivist: document.getElementById('term-class_archivist').value.trim() || 'Archivist',
-        class_fabricator: document.getElementById('term-class_fabricator').value.trim() || 'Fabricator'
+        class_vanguard: getVal('term-class_vanguard', 'Vanguard'),
+        class_warrior: getVal('term-class_warrior', 'Warrior'),
+        class_peacekeeper: getVal('term-class_peacekeeper', 'Peacekeeper'),
+        class_scavenger: getVal('term-class_scavenger', 'Scavenger'),
+        class_heartbound: getVal('term-class_heartbound', 'Heartbound'),
+        class_nomad: getVal('term-class_nomad', 'Nomad'),
+        class_warden: getVal('term-class_warden', 'Wilderness Warden'),
+        class_chronicler: getVal('term-class_chronicler', 'Chronicler'),
+        class_orator: getVal('term-class_orator', 'Orator'),
+        class_scriptweaver: getVal('term-class_scriptweaver', 'Scriptweaver'),
+        class_wartouched: getVal('term-class_wartouched', 'War-Touched'),
+        class_archivist: getVal('term-class_archivist', 'Archivist'),
+        class_fabricator: getVal('term-class_fabricator', 'Fabricator')
     };
 
     const modules = {};
@@ -912,7 +937,7 @@ function createCard(c) {
     if (c.status === 'coma') { statusClass = "border-[#f59e0b] shadow-[0_0_15px_rgba(245,158,11,0.2)]"; badgeHtml += `<span class="status-badge badge-coma" style="right: 8px">Coma</span>`; }
     else if (c.status === 'dead') { statusClass = "border-[#1a1a1a] opacity-70 grayscale"; badgeHtml += `<span class="status-badge badge-dead" style="right: 8px">Dead</span>`; imgStyle = "filter: grayscale(1)"; }
     
-    if (currentUser && c.owner === currentUser.username) badgeHtml += `<span class="status-badge bg-green-900 border border-green-700 text-parchment" style="left: 8px; right: auto;">YOURS</span>`;
+    if (currentUser?.username && c.owner === currentUser.username) badgeHtml += `<span class="status-badge bg-green-900 border border-green-700 text-parchment" style="left: 8px; right: auto;">YOURS</span>`;
     else if (!c.owner && c.type !== 'NPC' && c.type !== 'BEAST') badgeHtml += `<span class="status-badge bg-gray-700 border border-gray-500 text-parchment" style="left: 8px; right: auto;">UNCLAIMED</span>`;
     
     if (c.levelUpPending) {
@@ -965,12 +990,12 @@ window.closeSheet = () => { activeCharId = null; document.getElementById('sheet-
 window.createChar = async (type) => { 
     if (!currentUser) return; 
     try { 
-        const initialOwner = (activeRole === 'dm' ? null : currentUser.username);
+        const initialOwner = (activeRole === 'dm' ? null : currentUser?.username);
         const ref = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'characters'), { 
             type, 
             name: `New Adventurer`, 
             class: "",
-            ownerId: currentUser.uid, 
+            ownerId: currentUser?.uid || '', 
             owner: initialOwner, 
             isDeleted: false, 
             status: 'alive', 
@@ -1019,7 +1044,7 @@ function initSheetUI() {
 window.handleComaToggle = async (val) => {
     const char = characters.find(c => c.id === activeCharId);
     if (!char) return;
-    const isOwner = (currentUser && char.owner === currentUser.username) || char.owner === 'DM';
+    const isOwner = (currentUser?.username && char.owner === currentUser.username) || char.owner === 'DM';
     const isDM = activeRole === 'dm';
     if (!isOwner && !isDM) return;
     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'characters', activeCharId), { comaActive: val, dsSucc: 0, dsFail: 0 });
@@ -1028,7 +1053,7 @@ window.handleComaToggle = async (val) => {
 function syncSheetData() {
     const char = characters.find(c => c.id === activeCharId); if (!char) return;
     const ps = document.getElementById('party-select'); if (ps) { ps.innerHTML = '<option value="">Unassigned</option>'; parties.forEach(p => ps.innerHTML += `<option value="${p.id}">${p.name}</option>`); }
-    const isOwner = (currentUser && char.owner === currentUser.username) || char.owner === 'DM'; 
+    const isOwner = (currentUser?.username && char.owner === currentUser.username) || char.owner === 'DM'; 
     const isDM = activeRole === 'dm'; 
     const canEdit = isOwner || isDM; 
 
@@ -1038,7 +1063,7 @@ function syncSheetData() {
     document.getElementById('sheet-readonly-badge').classList.toggle('hidden', canEdit);
     
     // Notes Lock
-    const canEditNotes = (currentUser && char.owner === currentUser.username) || (isDM && char.type !== 'PC');
+    const canEditNotes = (currentUser?.username && char.owner === currentUser.username) || (isDM && char.type !== 'PC');
     const floatingNotes = document.querySelector('#quick-notes-bar textarea[data-key="notes"]');
     if (floatingNotes) {
         floatingNotes.readOnly = !canEditNotes;
@@ -1191,9 +1216,9 @@ function syncSheetData() {
     const compTab = document.getElementById('companion-view-area');
     if (compTab) {
         const classText = (char.class || '').toLowerCase();
-        const aliases = window.getVocationAliases();
-        const isArchivist = classText.includes(aliases['archivist']);
-        const isNomad = classText.includes(aliases['nomad']);
+        const aliases = window.getVocationAliases ? window.getVocationAliases() : {};
+        const isArchivist = classText.includes(aliases['archivist'] || 'archivist');
+        const isNomad = classText.includes(aliases['nomad'] || 'nomad');
         
         if (char.companionId) {
             const pet = characters.find(c => c.id === char.companionId && !c.isDeleted);
@@ -1326,6 +1351,10 @@ window.openScoreGenModal = () => {
     document.getElementById('gen-controls')?.classList.remove('hidden'); 
 };
 
+function getRoll(sides) {
+    return Math.floor(Math.random() * sides) + 1;
+}
+
 window.generateScores = (method, isReroll = false) => { 
     if (method === 'standard') lastGeneratedScores = [15, 14, 13, 12, 10, 8]; 
     else { 
@@ -1392,9 +1421,6 @@ function execRoll(label, bonus) {
     const r1 = getRoll(20), r2 = getRoll(20); 
     let final, btxt; if (rollMode === 'adv') { final = Math.max(r1, r2); btxt = `Adv: High(${r1}, ${r2})`; } else if (rollMode === 'dis') { final = Math.min(r1, r2); btxt = `Dis: Low(${r1}, ${r2})`; } else { final = r1; btxt = `(${r1})`; } 
     
-    if (final === 1) triggerCriticalFailure(); 
-    if (final === 20) triggerCriticalSuccess();
-    
     const total = final + bonus; const displayTotal = (total >= 0 ? '+' : '') + total;
     document.getElementById('roll-label').textContent = label; document.getElementById('roll-total').textContent = displayTotal; 
     document.getElementById('roll-breakdown').textContent = `${btxt} + ${bonus}`; 
@@ -1410,11 +1436,9 @@ window.rollDice = (s) => {
     const count = parseInt(document.getElementById('roll-count').value) || 1; let label, total, breakdown; 
     if (count === 1 && rollMode !== 'normal') { 
         const r1 = getRoll(s), r2 = getRoll(s); let final = rollMode === 'adv' ? Math.max(r1, r2) : Math.min(r1, r2);
-        if (s === 20) { if (final === 1) triggerCriticalFailure(); if (final === 20) triggerCriticalSuccess(); }
         total = final; label = `d${s} Roll`; breakdown = `${rollMode.toUpperCase()}: (${r1}, ${r2})`;
     } else { 
         const rolls = Array.from({length: count}, () => getRoll(s)); 
-        if (count === 1 && s === 20) { if (rolls[0] === 1) triggerCriticalFailure(); if (rolls[0] === 20) triggerCriticalSuccess(); }
         total = rolls.reduce((a, b) => a + b, 0); label = `${count}d${s} Roll`; breakdown = count > 1 ? `${rolls.join(' + ')} = ${total}` : `(${rolls[0]})`; 
     } 
     document.getElementById('roll-label').textContent = label; document.getElementById('roll-total').textContent = total; document.getElementById('roll-breakdown').textContent = breakdown; document.getElementById('dice-result-overlay').classList.remove('hidden'); addRollToHistory(label, total); 
@@ -1471,17 +1495,17 @@ window.renderMovesGrid = () => {
         
         let maxScriptLevel = -1; 
         let hasTrickCaster = false;
-        const aliases = window.getVocationAliases();
+        const aliases = window.getVocationAliases ? window.getVocationAliases() : {};
 
         classes.forEach(clsObj => {
             const cName = (clsObj.name || '').toLowerCase();
-            if (['warden', 'chronicler', 'orator', 'scriptweaver', 'wartouched', 'archivist'].some(vc => cName.includes(aliases[vc]))) {
+            if (['warden', 'chronicler', 'orator', 'scriptweaver', 'wartouched', 'archivist'].some(vc => cName.includes(aliases[vc] || vc))) {
                 maxScriptLevel = Math.max(maxScriptLevel, 9);
                 hasTrickCaster = true;
-            } else if (cName.includes(aliases['fabricator'])) {
+            } else if (cName.includes(aliases['fabricator'] || 'fabricator')) {
                 maxScriptLevel = Math.max(maxScriptLevel, 5);
                 hasTrickCaster = true;
-            } else if (['heartbound', 'nomad'].some(vc => cName.includes(aliases[vc]))) {
+            } else if (['heartbound', 'nomad'].some(vc => cName.includes(aliases[vc] || vc))) {
                 maxScriptLevel = Math.max(maxScriptLevel, 5);
             }
         });
@@ -1497,7 +1521,7 @@ window.renderMovesGrid = () => {
         }
     }
 
-    const canEdit = (currentUser && char?.owner === currentUser?.username) || char?.owner === 'DM' || activeRole === 'dm';
+    const canEdit = (currentUser?.username && char?.owner === currentUser?.username) || char?.owner === 'DM' || activeRole === 'dm';
     levels.forEach(lvl => { 
         const card = document.createElement('div'); card.className = "lvl-card"; const filtered = moves.filter(m => m.lvl === lvl && m.type === t); let html = `<div class="lvl-header">${lvl.toUpperCase()}</div><div class="flex-grow space-y-1">`;
         filtered.forEach(m => { const mIdx = moves.indexOf(m); html += `<div class="move-pill" ${canEdit ? `onclick="window.openMoveModal('${lvl}', ${mIdx})"` : ''}><span class="move-name">${m.name}</span><span class="move-roll">${m.roll || ''}</span></div>`; });
@@ -1712,7 +1736,9 @@ window.saveMulticlass = async () => {
 window.saveCurrentCharacter = (m) => { 
     if (!activeCharId || !currentUser) return; 
     const char = characters.find(c => c.id === activeCharId); 
-    if (!((currentUser && char.owner === currentUser.username) || char.owner === 'DM' || activeRole === 'dm')) return; 
+    if (!char) return;
+    const isOwner = currentUser?.username && char.owner === currentUser.username;
+    if (!isOwner && char.owner !== 'DM' && activeRole !== 'dm') return; 
     
     const data = {}; 
     document.querySelectorAll('[data-key]').forEach(el => data[el.dataset.key] = el.type === 'checkbox' ? el.checked : el.value); 
@@ -1742,7 +1768,12 @@ window.saveCurrentCharacter = (m) => {
     if (si) { si.style.opacity = 1; setTimeout(()=>si.style.opacity = 0, 1000); } 
 };
 
-window.claimCharacter = async () => { const char = characters.find(c => c.id === activeCharId); if (char.owner) return; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'characters', activeCharId), { owner: currentUser.username }); window.showToast("Character Claimed"); };
+window.claimCharacter = async () => { 
+    const char = characters.find(c => c.id === activeCharId); 
+    if (!char || char.owner || !currentUser) return; 
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'characters', activeCharId), { owner: currentUser.username }); 
+    window.showToast("Character Claimed"); 
+};
 
 window.calcMods = () => { 
     const p = parseInt(document.querySelector('[data-key="profBonus"]')?.value) || 2; 
@@ -1761,7 +1792,7 @@ window.calcMods = () => {
     });
     const armorText = (document.querySelector('[data-key="profArmor"]')?.value || "").toLowerCase();
     const classText = (document.querySelector('[data-key="class"]')?.value || "").toLowerCase();
-    const aliases = window.getVocationAliases();
+    const aliases = window.getVocationAliases ? window.getVocationAliases() : {};
     const acInput = document.querySelector('[data-key="ac"]');
     if (acInput) {
         let baseAC = 10;
@@ -1772,8 +1803,8 @@ window.calcMods = () => {
         else if (armorText.includes('medium armor')) { baseAC = 14; dexBonus = Math.min(stats.dex.mod, 2); wearingArmor = true; }
         else if (armorText.includes('heavy armor')) { baseAC = 16; dexBonus = 0; wearingArmor = true; }
         if (!wearingArmor) {
-            if (classText.includes(aliases['vanguard'])) { baseAC = 10 + stats.con.mod; dexBonus = stats.dex.mod; }
-            else if (classText.includes(aliases['peacekeeper'])) { baseAC = 10 + stats.wis.mod; dexBonus = stats.dex.mod; }
+            if (classText.includes(aliases['vanguard'] || 'vanguard')) { baseAC = 10 + stats.con.mod; dexBonus = stats.dex.mod; }
+            else if (classText.includes(aliases['peacekeeper'] || 'peacekeeper')) { baseAC = 10 + stats.wis.mod; dexBonus = stats.dex.mod; }
             else { baseAC = 10; dexBonus = stats.dex.mod; }
         }
         acInput.value = baseAC + dexBonus + shieldBonus;
@@ -1848,7 +1879,7 @@ window.confirmShortRest = async () => {
 
 window.toggleDS = async (type, num) => {
     const char = characters.find(c => c.id === activeCharId); if (!char) return;
-    const isOwner = (currentUser && char.owner === currentUser.username) || char.owner === 'DM';
+    const isOwner = (currentUser?.username && char.owner === currentUser.username) || char.owner === 'DM';
     const isDM = activeRole === 'dm'; if (!isOwner && !isDM) return;
     const key = type === 'succ' ? 'dsSucc' : 'dsFail';
     const newVal = (char[key] || 0) === num ? num - 1 : num;
@@ -1861,15 +1892,15 @@ window.rollDeathSave = async () => {
     let s = char.dsSucc || 0, f = char.dsFail || 0, updates = {}, msg = "";
     const isComa = !!char.comaActive;
     if (isComa) {
-        if (roll === 20) { updates = { hpCurrent: 1, dsSucc: 0, dsFail: 0, comaActive: false, status: 'alive', exhaustion: (parseInt(char.exhaustion) || 0) + 1 }; msg = "NATURAL 20! Awakening (HP 1, Exhaustion +1)."; triggerCriticalSuccess(); } 
-        else if (roll === 1) { f += 2; updates.currentStress = (parseInt(char.currentStress) || 0) + 1; const comp = COMA_COMPLICATIONS[Math.floor(Math.random() * COMA_COMPLICATIONS.length)]; msg = "NATURAL 1! +1 Stress, 2 Failures & Complication: " + comp; triggerCriticalFailure(); } 
+        if (roll === 20) { updates = { hpCurrent: 1, dsSucc: 0, dsFail: 0, comaActive: false, status: 'alive', exhaustion: (parseInt(char.exhaustion) || 0) + 1 }; msg = "NATURAL 20! Awakening (HP 1, Exhaustion +1)."; } 
+        else if (roll === 1) { f += 2; updates.currentStress = (parseInt(char.currentStress) || 0) + 1; msg = "NATURAL 1! +1 Stress, 2 Failures."; } 
         else if (roll >= 12) { s += 1; msg = "Coma Success (" + roll + ")"; } 
         else { f += 1; msg = "Coma Failure (" + roll + ")"; }
         if (s >= 3) { updates = { hpCurrent: 1, dsSucc: 0, dsFail: 0, comaActive: false, status: 'alive', exhaustion: (parseInt(char.exhaustion) || 0) + 1 }; msg += " — Character Awakens (Exhaustion +1, HP 1)."; } 
         else if (f >= 3) { updates.status = 'dead'; msg += " — Body can no longer sustain life. Character is deceased."; }
     } else {
-        if (roll === 20) { updates = { hpCurrent: 1, dsSucc: 0, dsFail: 0, status: 'alive' }; msg = "NATURAL 20! Back on your feet with 1 HP."; triggerCriticalSuccess(); } 
-        else if (roll === 1) { f += 2; updates.currentStress = (parseInt(char.currentStress) || 0) + 1; msg = "NATURAL 1! +1 Stress & 2 Failures marked."; triggerCriticalFailure(); } 
+        if (roll === 20) { updates = { hpCurrent: 1, dsSucc: 0, dsFail: 0, status: 'alive' }; msg = "NATURAL 20! Back on your feet with 1 HP."; } 
+        else if (roll === 1) { f += 2; updates.currentStress = (parseInt(char.currentStress) || 0) + 1; msg = "NATURAL 1! +1 Stress & 2 Failures marked."; } 
         else if (roll >= 10) { s += 1; msg = "Success (" + roll + ")"; } 
         else { f += 1; msg = "Failure (" + roll + ")"; }
         if (s >= 3) { updates.status = 'alive'; updates.dsSucc = 0; updates.dsFail = 0; msg += " — Stabilized!"; } 
@@ -1900,7 +1931,7 @@ window.savePartyRename = async () => { if (!activeManagePartyId) return; const n
 window.executeDeleteParty = async () => { if (!activeManagePartyId) return; const af = characters.filter(c => c.partyId === activeManagePartyId); for (const char of af) { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'characters', char.id), { partyId: "" }); } await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'parties', activeManagePartyId)); document.getElementById('manage-party-modal').classList.add('hidden'); window.showToast("Party Disbanded"); };
 
 const setupListeners = () => {
-    if (!currentUser) return;
+    if (!currentUser || !auth.currentUser) return;
     onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'characters'), (snap) => { characters = snap.docs.map(d => ({id: d.id, ...d.data()})); window.renderDashboard(); if (activeCharId) syncSheetData(); });
     onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'parties'), (snap) => { parties = snap.docs.map(d => ({id: d.id, ...d.data()})); window.renderDashboard(); if (activeCharId) syncSheetData(); });
 };
