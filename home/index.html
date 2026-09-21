@@ -1,7 +1,6 @@
 <!-- 
 Security Guidelines Noted:
 - https://www.thelazydeveloper.org/securing-endpoints-guide 
-- https://www.thelazydeveloper.org/securing-endpoints-guide 
 - https://www.thelazydeveloper.org/authorization-idor-guide 
 - https://www.thelazydeveloper.org/env-vars-api-keys-guide 
 -->
@@ -9,15 +8,19 @@ Security Guidelines Noted:
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Chronicles of the Realm</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chronicles of the Realm - Login</title>
     
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind & FontAwesome CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
 
-    <!-- Tailwind Config -->
+    <!-- Tailwind Configuration -->
     <script>
         tailwind.config = {
             theme: {
@@ -37,15 +40,198 @@ Security Guidelines Noted:
             }
         }
     </script>
-    
-    <!-- External CSS -->
+
+    <!-- External Custom Stylesheet -->
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="font-serif antialiased w-screen h-screen">
 
-    <!-- All of your HTML structure (Cinematic Background, Modals, UI Overlays, and Auth Forms) goes here -->
+    <!-- ======================================================= -->
+    <!-- CINEMATIC BACKGROUND (Remains persistent)               -->
+    <!-- ======================================================= -->
+    <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <!-- Sky Gradient -->
+        <div class="absolute inset-0 bg-gradient-to-t from-[#140a08] via-[#1f120e] to-[#0a0604]"></div>
+        
+        <!-- Glowing Amber Moon -->
+        <div class="absolute top-[15%] right-[25%] md:right-[35%] w-48 h-48 md:w-72 md:h-72 bg-radial from-[#c5a059] via-[rgba(197,160,89,0.3)] to-transparent rounded-full filter blur-[10px] mix-blend-screen opacity-60"></div>
+        <div class="absolute top-[18%] right-[27%] md:right-[37%] w-36 h-36 md:w-56 md:h-56 bg-[#f1e5c5] rounded-full opacity-80 shadow-[0_0_100px_rgba(197,160,89,0.5)]"></div>
 
-    <!-- External JavaScript -->
+        <!-- Overlays -->
+        <div class="pattern-overlay"></div>
+        <div class="ambient-fog"></div>
+        <div class="scanlines"></div>
+        <div class="vignette"></div>
+
+        <!-- Procedural Ruins SVG -->
+        <svg class="absolute bottom-0 right-0 w-[110%] md:w-[85%] h-[85%] md:h-[95%] text-[#0a0604] fill-current opacity-90" viewBox="0 0 1200 900" preserveAspectRatio="xMidYMax slice">
+            <!-- Distant Mountains/Hills -->
+            <path d="M0 720 Q 350 640, 700 700 T 1200 680 L 1200 900 L 0 900 Z" fill="#0f0806" />
+            <path d="M0 760 Q 250 710, 500 750 T 1200 730 L 1200 900 L 0 900 Z" fill="#140a08" />
+
+            <!-- Gnarled Dead Tree (Left) -->
+            <path d="M-50 800 Q 20 650, 40 500 T 100 200 Q 110 180, 95 160 T 70 210 Q 90 280, 50 450 T -50 800" fill="#0a0504" />
+            
+            <!-- Right Tree & Crows -->
+            <path d="M1200 600 Q 1050 450, 1020 300 T 950 150 Q 940 100, 910 80 T 890 120 Q 920 180, 960 300 Q 940 280, 910 250 T 830 220 Q 860 260, 930 330 T 1200 600" fill="#080403" />
+            <path d="M913 243 Q 910 235, 915 233 Q 923 234, 920 243 Z" fill="#000" />
+            <path d="M915 240 L 925 242 L 918 245 Z" fill="#000" />
+            <path d="M843 218 Q 840 210, 845 208 Q 853 209, 850 218 Z" fill="#000" />
+
+            <!-- Left Cathedral Gothic Wall -->
+            <path d="M200 850 L 200 400 Q 200 300, 280 250 L 400 250 Q 480 300, 480 400 L 480 850 Z" fill="#0d0705"/>
+            <!-- Inner Arch details -->
+            <path d="M230 850 L 230 420 Q 230 350, 280 310 L 400 310 Q 450 350, 450 420 L 450 850 Z" fill="#080403" />
+            
+            <!-- Stained glass rosette window -->
+            <circle cx="340" cy="450" r="75" fill="#140a08" stroke="#0a0504" stroke-width="8" />
+            <path d="M340 375 L 340 525 M 265 450 L 415 450 M 287 397 L 393 503 M 287 503 L 393 397" stroke="#080403" stroke-width="4" />
+            <circle cx="340" cy="450" r="35" fill="none" stroke="#0a0504" stroke-width="6" />
+            
+            <!-- Battlements & Pillars -->
+            <path d="M480 700 L 520 620 L 560 620 L 560 850 Z" fill="#0d0705" />
+            
+            <!-- Triple Gothic Arches -->
+            <path d="M560 850 L 560 520 Q 560 440, 610 400 Q 660 440, 660 520 L 660 850 Z" fill="#0d0705" />
+            <path d="M660 850 L 660 480 Q 660 400, 710 360 Q 760 400, 760 480 L 760 850 Z" fill="#0d0705" />
+            <path d="M760 850 L 760 520 Q 760 440, 810 400 Q 860 440, 860 520 L 860 850 Z" fill="#0d0705" />
+
+            <!-- Inner hollows for depth -->
+            <path d="M575 850 L 575 530 Q 575 470, 610 430 Q 645 470, 645 530 L 645 850 Z" fill="#080403" />
+            <path d="M675 850 L 675 490 Q 675 430, 710 390 Q 745 430, 745 490 L 745 850 Z" fill="#050201" />
+            <path d="M775 850 L 775 530 Q 775 470, 810 430 Q 845 470, 845 530 L 845 850 Z" fill="#080403" />
+
+            <!-- Right crumbling walls -->
+            <path d="M860 850 L 860 560 Q 860 480, 920 450 L 1000 450 L 1000 850 Z" fill="#0d0705" />
+            <path d="M885 850 L 885 590 L 975 590 L 975 850 Z" fill="#080403" />
+
+            <!-- Campfire base stones -->
+            <circle cx="710" cy="815" r="22" fill="#050201" />
+        </svg>
+
+        <!-- Dynamic Campfire -->
+        <div class="campfire-core absolute bottom-[8%] right-[38%] md:right-[40.2%] w-16 h-16 bg-gradient-to-t from-red-600 via-amber-600 to-yellow-500 rounded-full filter blur-xl opacity-80 z-10"></div>
+        
+        <!-- Floating Embers -->
+        <div class="ember"></div>
+        <div class="ember"></div>
+        <div class="ember"></div>
+        <div class="ember"></div>
+        <div class="ember"></div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- UI OVERLAYS (Loading, Global Modals)                    -->
+    <!-- ======================================================= -->
+    
+    <!-- Global Modal for Errors -->
+    <div id="modal-container" class="fixed inset-0 bg-black bg-opacity-80 z-[100] flex items-center justify-center hidden backdrop-blur-sm">
+        <div class="parchment-bg p-8 max-w-sm w-full mx-4 rounded-lg shadow-2xl text-center">
+            <h3 id="modal-title" class="font-heading text-2xl font-bold text-blood mb-4">Notification</h3>
+            <p id="modal-message" class="text-ink mb-6"></p>
+            <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="fantasy-btn px-6 py-2 rounded">Acknowledge</button>
+        </div>
+    </div>
+
+    <!-- Initial Loading State -->
+    <div id="initial-loading" class="fixed inset-0 z-50 flex flex-col items-center justify-center fade-in backdrop-blur-sm bg-wood/80">
+        <i class="fa-solid fa-circle-notch fa-spin text-6xl text-gold mb-6 filter drop-shadow-[0_0_10px_rgba(197,160,89,0.8)]"></i>
+        <h2 class="font-heading text-2xl text-parchment animate-pulse tracking-widest">Reading the Runes...</h2>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- SCREEN 1: CINEMATIC INTRO ("Press Start" Screen)        -->
+    <!-- ======================================================= -->
+    <div id="intro-view" class="absolute inset-0 z-40 flex flex-col items-center justify-center hidden">
+        <div class="text-center px-4">
+            <h1 class="font-heading text-5xl sm:text-7xl md:text-8xl font-black text-parchment intro-title-glow mb-2 drop-shadow-2xl">
+                Chronicles of the Realm
+            </h1>
+            <p class="text-gold text-lg md:text-2xl font-serif italic mb-12 opacity-80 tracking-widest">
+                The Eternal Campaign Awaits
+            </p>
+            
+            <button onclick="enterGame()" class="fantasy-btn-intro px-10 py-4 text-xl rounded-sm">
+                Enter The Realm
+            </button>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- SCREEN 2: AUTHENTICATION PARCHMENT MODAL                -->
+    <!-- ======================================================= -->
+    <div id="auth-view" class="absolute inset-0 z-30 hidden flex items-center justify-center p-4">
+        <div class="parchment-bg p-10 relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8)] w-full max-w-lg">
+            <!-- Corner Ornaments -->
+            <div class="absolute top-2 left-2 text-gold text-2xl opacity-70"><i class="fa-solid fa-dragon"></i></div>
+            <div class="absolute top-2 right-2 text-gold text-2xl opacity-70"><i class="fa-solid fa-khanda"></i></div>
+            <div class="absolute bottom-2 left-2 text-gold text-2xl opacity-70"><i class="fa-solid fa-dungeon"></i></div>
+            <div class="absolute bottom-2 right-2 text-gold text-2xl opacity-70"><i class="fa-solid fa-dice-d20"></i></div>
+
+            <div class="text-center mb-6">
+                <h2 class="font-heading text-3xl font-bold text-ink drop-shadow-md mb-2">Identify Thyself</h2>
+                <p class="text-sm italic text-gray-700">Prove your worth to access the archives.</p>
+                <hr class="ornamental-hr">
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex border-b border-gold mb-6">
+                <button id="tab-login" class="flex-1 py-2 font-heading font-bold text-blood border-b-4 border-blood" onclick="switchAuthTab('login')">Login</button>
+                <button id="tab-register" class="flex-1 py-2 font-heading font-bold text-ink hover:text-blood transition" onclick="switchAuthTab('register')">Register</button>
+            </div>
+
+            <form id="auth-form" class="space-y-5">
+                <div>
+                    <label class="block font-heading font-bold text-ink mb-1">Email</label>
+                    <input type="email" id="auth-email" required class="fantasy-input w-full p-3 rounded" placeholder="traveler@realm.com">
+                </div>
+                <div>
+                    <label class="block font-heading font-bold text-ink mb-1">Password</label>
+                    <input type="password" id="auth-password" required class="fantasy-input w-full p-3 rounded" placeholder="Your secret passphrase">
+                </div>
+
+                <!-- Registration Only Fields -->
+                <div id="register-fields" class="hidden space-y-5">
+                    <div>
+                        <label class="block font-heading font-bold text-ink mb-2">Choose Your Path</label>
+                        <div class="grid grid-cols-2 gap-4">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="auth-role" value="player" checked class="peer hidden">
+                                <div class="fantasy-btn bg-opacity-50 peer-checked:bg-opacity-100 peer-checked:shadow-inner p-3 text-center rounded opacity-60 peer-checked:opacity-100 text-sm">
+                                    <i class="fa-solid fa-khanda block mb-1"></i> Player
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="auth-role" value="dm" class="peer hidden">
+                                <div class="fantasy-btn bg-opacity-50 peer-checked:bg-opacity-100 peer-checked:shadow-inner p-3 text-center rounded opacity-60 peer-checked:opacity-100 text-sm">
+                                    <i class="fa-solid fa-dragon block mb-1"></i> Dungeon Master
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    <div id="dm-secret-container" class="hidden">
+                        <label class="block font-heading font-bold text-blood mb-1">DM Sanctum Password</label>
+                        <p class="text-xs italic mb-2">Required to edit campaign rules and world lore.</p>
+                        <input type="password" id="auth-dm-secret" class="fantasy-input w-full p-3 rounded" placeholder="Sanctum passphrase...">
+                    </div>
+                </div>
+
+                <button type="submit" id="auth-submit-btn" class="fantasy-btn w-full py-4 text-xl rounded mt-6 shadow-lg">Enter the Realm</button>
+                
+                <div class="relative flex py-4 items-center">
+                    <div class="flex-grow border-t border-gold"></div>
+                    <span class="flex-shrink-0 mx-4 text-ink font-heading font-bold text-sm">OR</span>
+                    <div class="flex-grow border-t border-gold"></div>
+                </div>
+
+                <button type="button" id="btn-guest-signin" class="w-full py-3 bg-wood text-parchment hover:text-white font-bold rounded shadow flex items-center justify-center gap-3 transition border border-gold hover:border-parchment mt-2">
+                    <i class="fa-solid fa-eye"></i> Enter as Guest
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- External UI and Authentication Scripts -->
     <script src="js/ui.js"></script>
     <script type="module" src="js/auth.js"></script>
 </body>
