@@ -1,7 +1,19 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { 
+    getAuth, 
+    onAuthStateChanged, 
+    signInWithEmailAndPassword, 
+    createUserWithEmailAndPassword, 
+    signInAnonymously, 
+    signOut 
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { 
+    getFirestore, 
+    doc, 
+    setDoc, 
+    getDoc 
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCKRN5dfi4og69_D8ZAvV1BQfwCK_f2uis",
@@ -29,11 +41,12 @@ window.logoutAuth = () => {
     signOut(auth).then(() => window.location.reload());
 };
 
-// Redirect function called explicitly upon successful authentication action
+window.isAuthenticating = false;
+
 window.proceedToCampaigns = async (user) => {
-    const targetUrl = "/TEST-FIELD/nexus/campaigns.html";
     try {
-        window.location.href = targetUrl;
+        // Points outside /home/ into /nexus/campaigns.html
+        window.location.href = "../nexus/campaigns.html";
     } catch(e) {
         let display = user.displayName || "Traveler";
         try {
@@ -45,7 +58,7 @@ window.proceedToCampaigns = async (user) => {
         document.getElementById('auth-view').innerHTML = `
             <div class="parchment-bg p-10 text-center shadow-2xl border-2 border-gold rounded-lg max-w-sm">
                 <h2 class="text-blood font-heading text-2xl mb-4 font-bold">Welcome Back, ${display}!</h2>
-                <p class="text-ink font-serif text-sm">Automatic redirect was prevented.<br><br><a href="${targetUrl}" class="text-blood font-bold underline">Click here to enter the Nexus</a>.</p>
+                <p class="text-ink font-serif text-sm">Automatic redirect encountered an issue.<br><br>Please manually open <a href="../nexus/campaigns.html" class="underline text-blood font-bold">campaigns.html</a> to continue.</p>
                 <button onclick="window.logoutAuth()" class="mt-6 text-xs text-blood font-bold uppercase tracking-widest hover:underline font-heading">Switch Account / Log Out</button>
             </div>
         `;
@@ -55,11 +68,15 @@ window.proceedToCampaigns = async (user) => {
 };
 
 // --- AUTHENTICATION STATE OBSERVER ---
-// Simply reveals the login screen on load without auto-redirecting existing sessions
 onAuthStateChanged(auth, async (user) => {
-    document.getElementById('initial-loading').classList.add('hidden');
-    document.getElementById('intro-view').classList.remove('hidden');
-    document.getElementById('intro-view').classList.add('fade-in');
+    if (user) {
+        if (window.isAuthenticating) return; // Wait for manual redirect from the registration script
+        await window.proceedToCampaigns(user);
+    } else {
+        document.getElementById('initial-loading').classList.add('hidden');
+        document.getElementById('intro-view').classList.remove('hidden');
+        document.getElementById('intro-view').classList.add('fade-in');
+    }
 });
 
 // Handle DM Secret visibility
@@ -69,12 +86,13 @@ document.querySelectorAll('input[name="auth-role"]').forEach(radio => {
     });
 });
 
-// Handle Guest Sign-In (Redirects after clicking)
+// Handle Guest Sign-In
 document.getElementById('btn-guest-signin').addEventListener('click', async () => {
     const submitBtn = document.getElementById('btn-guest-signin');
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = "<i class='fa-solid fa-spinner fa-spin mr-2'></i>Opening Gates...";
     submitBtn.disabled = true;
+    window.isAuthenticating = true;
 
     try {
         const cred = await signInAnonymously(auth);
@@ -84,10 +102,11 @@ document.getElementById('btn-guest-signin').addEventListener('click', async () =
         window.showModal("Error", "Failed to enter as guest. " + error.message);
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
+        window.isAuthenticating = false;
     }
 });
 
-// Handle Login/Register Submission (Redirects after submitting form)
+// Handle Login/Register Submission
 document.getElementById('auth-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('auth-email').value.trim();
@@ -98,6 +117,7 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
     const submitBtn = document.getElementById('auth-submit-btn');
     submitBtn.innerText = "Entering the Realm...";
     submitBtn.disabled = true;
+    window.isAuthenticating = true;
 
     try {
         let user;
@@ -108,12 +128,14 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
             if (role === 'dm' && !dmSecret) {
                 submitBtn.innerText = "Forge Account";
                 submitBtn.disabled = false;
+                window.isAuthenticating = false;
                 return window.showModal("Hold!", "A Dungeon Master must set a Sanctum password.");
             }
 
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             user = userCredential.user;
 
+            // Ensure the document finishes writing BEFORE we redirect
             await setDoc(doc(db, 'users', user.uid), {
                 username: '',
                 email: email,
@@ -126,11 +148,11 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
             user = userCredential.user;
         }
         
-        // Redirect user to the Nexus ONLY upon explicit form submission
         await window.proceedToCampaigns(user);
         
     } catch (error) {
         console.error("Auth Error:", error);
+        window.isAuthenticating = false;
         submitBtn.disabled = false;
         submitBtn.innerText = window.currentAuthMode === 'login' ? "Enter the Realm" : "Forge Account";
         
