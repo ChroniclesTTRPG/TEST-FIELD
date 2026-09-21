@@ -9,7 +9,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
 
-    <!-- Tailwind Configuration -->
     <script>
         tailwind.config = {
             theme: {
@@ -31,8 +30,7 @@
         }
     </script>
 
-    <!-- External Stylesheet -->
-    <link rel="stylesheet" href="./css/encounter.css">
+    <link rel="stylesheet" href="css/encounter.css">
 </head>
 <body class="min-h-screen">
 
@@ -58,7 +56,6 @@
         <h2 class="font-heading text-2xl text-parchment animate-pulse">Entering the Realm...</h2>
     </div>
 
-    <!-- MAIN DASHBOARD -->
     <div id="dashboard-screen" class="min-h-screen dashboard-bg p-4 md:p-8 hidden w-full">
         <div class="max-w-6xl mx-auto">
             <header class="flex flex-col items-center md:items-start md:flex-row justify-between mb-8 border-b border-gray-700 pb-6 gap-6 relative">
@@ -101,7 +98,6 @@
             </div>
 
             <div id="view-content" class="space-y-8">
-                <!-- INITIATIVE TRACKER SECTION -->
                 <div id="initiative-tracker-view">
                     <div class="bg-black bg-opacity-70 border border-gray-700 rounded-lg p-4 md:p-6 shadow-2xl relative overflow-hidden">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blood via-gold to-blood opacity-70"></div>
@@ -136,7 +132,6 @@
                             </div>
                         </div>
 
-                        <!-- ENGAGEMENT RULES INFO -->
                         <div class="flex flex-col md:flex-row gap-4 mb-6">
                             <div class="flex-grow bg-black/50 border border-gray-700 rounded p-3 text-[10px] text-gray-400 flex items-start gap-3 shadow-inner font-serif italic">
                                 <span class="text-gold text-base leading-none mt-0.5 not-italic">ⓘ</span>
@@ -161,7 +156,6 @@
         </div>
     </div>
 
-    <!-- SHEET SCREEN -->
     <div id="sheet-screen" class="hidden-view">
         <nav class="sticky top-0 z-[60] bg-[#1a110b] p-2 shadow-2xl border-b border-gray-800 font-heading">
             <div class="max-w-6xl mx-auto flex justify-between items-center text-gray-300 px-4">
@@ -589,8 +583,6 @@
         </div>
     </div>
 
-    <!-- MODALS -->
-    <!-- HP ADJUSTMENT MODAL -->
     <div id="hp-adjustment-modal" class="modal-overlay hidden">
         <div class="modal-container">
             <h2 class="modal-header">Adjust Health</h2>
@@ -610,7 +602,6 @@
         </div>
     </div>
 
-    <!-- SCORE GENERATOR MODAL -->
     <div id="score-gen-modal" class="modal-overlay hidden">
         <div class="modal-container max-w-xl py-12 px-10">
             <h2 class="text-4xl font-heading font-black text-blood text-center uppercase tracking-tighter mb-10 border-b border-gold pb-4">Score Generator</h2>
@@ -644,7 +635,6 @@
         </div>
     </div>
 
-    <!-- SHORT REST MODAL -->
     <div id="short-rest-modal" class="modal-overlay hidden">
         <div class="modal-container">
             <h2 class="modal-header">Short Rest</h2>
@@ -675,7 +665,6 @@
         </div>
     </div>
 
-    <!-- DELETE/MANAGE MODAL -->
     <div id="delete-modal" class="modal-overlay hidden">
         <div class="modal-container">
             <h2 class="modal-header">Manage Character</h2>
@@ -697,7 +686,6 @@
         </div>
     </div>
 
-    <!-- MOVE MODAL -->
     <div id="move-modal" class="modal-overlay hidden">
         <div class="modal-container max-w-2xl max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center border-b-2 border-gold mb-6 pb-2">
@@ -747,7 +735,6 @@
         </div>
     </div>
 
-    <!-- CAMPAIGN TERMINOLOGY SETTINGS MODAL (DM ONLY) -->
     <div id="settings-modal" class="modal-overlay hidden z-[900]">
         <div class="modal-container !bg-[#1a110b] !border-gold !text-parchment shadow-2xl !max-w-3xl flex flex-col p-6 md:p-8 !bg-none h-[90vh]">
             <h2 class="font-heading text-2xl font-black text-gold uppercase tracking-widest border-b border-gold/30 pb-4 mb-4 text-center shrink-0">Campaign Terminology</h2>
@@ -818,7 +805,6 @@
         </div>
     </div>
 
-    <!-- OPPORTUNITY ATTACK MODAL -->
     <div id="op-attack-modal" class="modal-overlay hidden z-[600]">
         <div class="modal-container !bg-ink !text-parchment !border-gray-600 !bg-none">
             <h2 class="font-heading text-2xl font-black text-gold uppercase tracking-widest border-b border-gray-700 pb-4 mb-4 text-center">Opportunity Attack</h2>
@@ -839,7 +825,6 @@
         </div>
     </div>
 
-    <!-- READY ACTION MODAL -->
     <div id="ready-action-modal" class="modal-overlay hidden z-[600]">
         <div class="modal-container !bg-ink !text-parchment !border-blue-900 !bg-none">
             <h2 class="font-heading text-2xl font-black text-blue-400 uppercase tracking-widest border-b border-blue-900/50 pb-4 mb-4 text-center">Ready an Action</h2>
@@ -867,7 +852,6 @@
         </div>
     </div>
 
-    <!-- ENCOUNTER SPAWNER MODAL -->
     <div id="encounter-spawner-modal" class="modal-overlay hidden z-[700]">
         <div class="modal-container !bg-ink !text-parchment !border-purple-900 shadow-2xl max-w-2xl max-h-[85vh] flex flex-col p-6 md:p-8 !bg-none">
             <div class="flex justify-between items-center mb-6 border-b border-purple-900/50 pb-4">
@@ -887,7 +871,6 @@
         </div>
     </div>
 
-    <!-- COMBAT SELECTION MODAL -->
     <div id="combat-selection-modal" class="modal-overlay hidden z-[800]">
         <div class="modal-container border border-gray-600 shadow-2xl max-w-2xl max-h-[85vh] flex flex-col p-6 md:p-8 !bg-ink !text-parchment !bg-none">
             <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-4">
@@ -906,7 +889,6 @@
         </div>
     </div>
 
-    <!-- DICE OVERLAY -->
     <div id="dice-result-overlay" class="fixed inset-0 bg-black/90 flex items-center justify-center z-[600] hidden" onclick="this.classList.add('hidden')">
         <div class="text-center text-white p-12">
             <div id="roll-label" class="text-gold font-heading text-2xl mb-2 uppercase tracking-widest">ROLL</div>
@@ -915,7 +897,6 @@
         </div>
     </div>
 
-    <!-- ROLLER BAR -->
     <div id="quick-roll-bar" class="hidden-view floating-roller font-heading">
         <div class="flex items-center justify-between mb-4 border-b border-[rgba(139,90,43,0.3)] pb-2 text-ink">
             <div class="flex items-center gap-2">
@@ -937,7 +918,6 @@
         </div>
     </div>
 
-    <!-- External Logic Script -->
-    <script type="module" src="./js/encounter.js"></script>
+    <script type="module" src="js/encounter.js"></script>
 </body>
 </html>
