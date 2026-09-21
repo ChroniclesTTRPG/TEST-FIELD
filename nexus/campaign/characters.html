@@ -94,6 +94,20 @@
                 </div>
             </header>
 
+            <!-- DM / ADMIN PARTY MILESTONE LEVEL UP CONTROLS -->
+            <div id="dm-party-levelup-bar" class="hidden mb-8 p-4 bg-gradient-to-r from-wood via-[#2c1e16] to-wood border-2 border-gold rounded-lg shadow-2xl flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-crown text-2xl text-gold animate-bounce"></i>
+                    <div>
+                        <h3 class="font-heading font-black text-sm text-gold uppercase tracking-widest">DM Milestone Management</h3>
+                        <p class="text-[11px] font-serif italic text-gray-300">Grant milestones to trigger the Level-Up Wizard for your adventurers.</p>
+                    </div>
+                </div>
+                <div class="flex gap-3 w-full sm:w-auto font-heading">
+                    <button onclick="window.grantPartyMilestone()" class="flex-1 sm:flex-none fantasy-btn px-6 py-2 rounded text-xs font-bold uppercase tracking-widest shadow-lg">⚡ Grant Party Milestone</button>
+                </div>
+            </div>
+
             <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                 <h2 id="view-title" class="text-xl md:text-2xl font-heading text-gray-500 uppercase font-bold tracking-widest drop-shadow">The Party</h2>
                 <div id="create-actions" class="flex gap-2 w-full md:w-auto hidden">
@@ -115,6 +129,9 @@
                 <button onclick="window.closeSheet()" class="text-gold hover:text-white font-bold flex items-center gap-2 text-xs uppercase tracking-widest"><span>←</span> Depart</button>
                 <div id="sheet-readonly-badge" class="hidden bg-gray-800 text-gray-400 px-4 py-1 rounded text-[10px] font-black uppercase tracking-widest border border-gray-600">VIEW ONLY</div>
                 <div class="flex items-center gap-4">
+                    <!-- LEVEL UP PENDING BUTTON FOR PLAYERS -->
+                    <button id="btn-level-up-wizard" onclick="window.openLevelUpWizard()" class="hidden bg-gold hover:bg-yellow-400 text-black px-4 py-1 rounded text-[10px] font-black uppercase tracking-widest border border-yellow-200 animate-bounce font-heading shadow-md">⚡ Level Up Available!</button>
+                    
                     <span id="sheet-type-badge" class="bg-blood text-parchment px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest border border-gold">PC</span>
                     <div class="flex items-center gap-2">
                         <button id="claim-char-btn" onclick="window.claimCharacter()" class="fantasy-btn px-4 py-1 rounded text-[10px] font-black uppercase tracking-widest hidden animate-pulse">Claim</button>
@@ -148,6 +165,7 @@
                                 <label for="dm-unlock-sheet" class="text-[9px] font-black uppercase text-[#f59e0b] tracking-wider font-heading cursor-pointer">Unlock Class/Stats for Player</label>
                             </div>
                             <div class="flex gap-2 mt-1">
+                                <button id="dm-grant-single-lvl" onclick="window.grantSingleMilestone()" class="bg-amber-600 hover:bg-amber-500 text-black px-3 py-1.5 rounded text-[9px] font-black uppercase tracking-widest shadow font-heading">⚡ Grant Milestone (+1 Lvl)</button>
                                 <button id="dm-reset-roll-btn" onclick="window.dmResetAbilityScores()" class="hidden bg-blood hover:bg-red-800 text-parchment px-3 py-1.5 rounded text-[9px] font-black uppercase tracking-widest shadow border border-gold font-heading">Reset Ability Scores</button>
                                 <button id="dm-add-trauma-btn" onclick="window.openDmTraumaModal()" class="bg-[#f59e0b] hover:bg-amber-600 text-black px-3 py-1.5 rounded text-[9px] font-black uppercase tracking-widest shadow font-heading">+ Assign Trauma (DM)</button>
                             </div>
@@ -169,7 +187,7 @@
                                 </div>
                             </div>
                             <div class="lg:col-span-7 grid grid-cols-2 md:grid-cols-3 gap-4">
-                                <div><input type="number" data-key="level" placeholder="1" onchange="window.updateLevelDependencies(this.value)"><label id="label-term-level" class="tiny-label">Level</label></div>
+                                <div><input type="number" data-key="level" placeholder="1" readonly><label id="label-term-level" class="tiny-label">Level</label></div>
                                 <div><select id="party-select" data-key="partyId" class="cursor-pointer"><option value="">Unassigned</option></select><label id="label-term-party" class="tiny-label">Party</label></div>
                                 <div><input type="text" data-key="race" placeholder="Human"><label id="label-term-race" class="tiny-label">Race</label></div>
                                 <div><input type="text" id="archetype-field" data-key="archetype" placeholder="Survivor"><label id="label-term-archetype" class="tiny-label">Archetype</label></div>
@@ -184,7 +202,7 @@
                                 <div class="sheet-card">
                                     <h3 class="flex justify-between items-center"><span id="label-term-abilities">Abilities</span> <button id="main-gen-btn" onclick="window.openScoreGenModal()" class="bg-transparent border border-blood text-blood px-2 py-0.5 rounded text-[8px] font-bold hover:bg-blood hover:text-parchment transition-colors font-heading">Roll</button></h3>
                                     <div class="grid grid-cols-2 gap-4 mb-4">
-                                        <div class="text-center"><input type="number" data-key="profBonus" class="text-xl font-black text-center text-blood font-heading" value="2" onchange="window.calcMods()"><label id="label-term-prof" class="tiny-label">Proficiency</label></div>
+                                        <div class="text-center"><input type="number" data-key="profBonus" class="text-xl font-black text-center text-blood font-heading" value="2" readonly><label id="label-term-prof" class="tiny-label">Proficiency</label></div>
                                         <div class="text-center"><input type="number" data-key="passivePerception" class="text-xl font-black text-center text-ink font-heading" value="10" readonly><label class="tiny-label">Pass. Perception</label></div>
                                     </div>
                                     <hr class="ornamental-hr">
@@ -559,6 +577,53 @@
                         <div id="features-lvl-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LEVEL UP WIZARD MODAL -->
+    <div id="level-up-modal" class="modal-overlay hidden z-[800]">
+        <div class="modal-container max-w-xl p-8">
+            <h2 class="modal-header">⚡ Vocation Level Up</h2>
+            <p class="text-xs text-ink mb-6 font-serif italic text-center">Your DM has granted a milestone! Select where to invest your new level and calculate your health increase.</p>
+            
+            <div class="space-y-6 font-serif text-xs">
+                <!-- Vocation Choice -->
+                <div>
+                    <label class="tiny-label font-bold text-blood uppercase tracking-wider block mb-1">Target Vocation</label>
+                    <select id="lvl-wizard-vocation" class="w-full bg-[rgba(255,255,255,0.6)] border border-gold p-2 rounded text-sm font-bold text-ink cursor-pointer" onchange="window.previewVocationLevel(this.value)">
+                        <!-- Populated by JS -->
+                    </select>
+                    <p id="multiclass-req-text" class="text-[10px] italic text-gray-600 mt-1"></p>
+                </div>
+
+                <!-- Hit Die & HP Calculation -->
+                <div class="bg-[rgba(255,255,255,0.4)] p-4 rounded border border-gold space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="font-heading font-bold text-blood uppercase text-xs">HP Gain method:</span>
+                        <span id="wizard-hitdie-label" class="font-bold text-ink">Hit Die: d8</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 font-heading">
+                        <button onclick="window.wizardRollHP()" id="btn-roll-hp" class="fantasy-btn py-2.5 rounded text-[10px] font-bold uppercase tracking-widest shadow">Roll Hit Die</button>
+                        <button onclick="window.wizardAverageHP()" id="btn-avg-hp" class="fantasy-btn-alt py-2.5 rounded text-[10px] font-bold uppercase tracking-widest shadow">Take Average</button>
+                    </div>
+                    <div id="hp-gain-result" class="hidden text-center p-2 bg-green-100 border border-green-600 rounded text-green-800 font-bold font-heading text-sm">
+                        <!-- Output -->
+                    </div>
+                </div>
+
+                <!-- New Level Features Preview -->
+                <div>
+                    <label class="tiny-label font-bold text-blood uppercase tracking-wider block mb-1">Gained Features at Level</label>
+                    <div id="wizard-features-preview" class="p-3 bg-[rgba(255,255,255,0.4)] border border-dashed border-gray-400 rounded text-xs space-y-1 font-serif italic text-ink max-h-32 overflow-y-auto">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer font-heading mt-6">
+                <button onclick="document.getElementById('level-up-modal').classList.add('hidden')" class="px-4 py-2 text-555 font-bold uppercase text-xs underline">Cancel</button>
+                <button onclick="window.confirmLevelUp()" id="btn-confirm-lvlup" disabled class="fantasy-btn px-8 py-2 rounded font-bold uppercase text-xs opacity-50 cursor-not-allowed shadow-lg">Confirm Level Up</button>
             </div>
         </div>
     </div>
