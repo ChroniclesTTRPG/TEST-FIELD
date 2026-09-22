@@ -77,10 +77,8 @@
                     </div>
                 </div>
 
-               <div class="flex items-center gap-4">
-                        <button onclick="try { window.routeTo ? window.routeTo('../campaigns.html') : window.location.href='../campaigns.html' } catch(e) { window.showToast('Redirects disabled in preview window.') }" class="fantasy-btn-alt px-4 py-1.5 text-xs rounded"><i class="fa-solid fa-arrow-left mr-2"></i>Nexus</button>
-                    </div>
-
+                <div class="flex items-center gap-4">
+                    <button onclick="try { window.routeTo ? window.routeTo('../campaigns.html') : window.location.href='../campaigns.html' } catch(e) { window.showToast('Redirects disabled in preview window.') }" class="fantasy-btn-alt px-4 py-1.5 text-xs rounded"><i class="fa-solid fa-arrow-left mr-2"></i>Nexus</button>
                     <nav id="main-nav" class="flex gap-4 md:gap-6 items-center w-full overflow-x-auto scrollbar-hide pb-2 px-2 md:px-0 md:pb-0 justify-start md:justify-end mt-2">
                         <a href="#" onclick="window.routeTo('characters.html'); return false;" id="nav-party" class="nav-link active dyn-term" data-term="nav_party">Party</a>
                         <a href="#" onclick="window.routeTo('encounter/encounters.html'); return false;" id="nav-encounters" class="nav-link hidden !text-blood dyn-term" data-term="nav_encounters">Encounters</a>
@@ -1058,12 +1056,10 @@
         </div>
         <div id="roller-minimized-view" class="hidden">
             <button onclick="window.toggleRoller(false)" class="w-14 h-14 flex items-center justify-center bg-parchment rounded-full border-2 border-gold text-ink hover:text-blood hover:border-blood shadow-[0_4px_15px_rgba(0,0,0,0.6)] transition-all transform hover:scale-105" title="Expand Dice Roller">
-                <i class="fa-solid fa-dice-d20 text-2xl"></i>
+                <i class="fa-solid fa-dice-d20 text-2xl text-blood"></i>
             </button>
         </div>
     </div>
 
-    <!-- Custom Script -->
-    <script type="module" src="js/app.js"></script>
 </body>
 </html>
